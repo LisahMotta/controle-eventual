@@ -26,6 +26,18 @@ Não precisa instalar nada — basta abrir o arquivo `index.html` em qualquer na
 
 > **Importante:** os dados ficam salvos apenas no navegador em que foram digitados (localStorage). Use o botão **Exportar dados** periodicamente para guardar uma cópia de segurança, e **Importar dados** para restaurá-la em outro computador.
 
+## Publicar no Railway (ou similar)
+
+O projeto já vem com um servidor Node embutido (`server.js`, sem dependências) e `package.json` com o script `start`, então o Railway detecta e publica automaticamente:
+
+1. Acesse [railway.app](https://railway.app) e crie um novo projeto com **Deploy from GitHub repo**.
+2. Escolha este repositório e o branch desejado.
+3. O Railway detecta o Node, roda `npm start` e gera a URL pública do app.
+
+Nenhuma variável de ambiente é necessária — o servidor usa a porta definida pelo Railway (`PORT`) automaticamente.
+
+Para testar localmente: `npm start` e abra `http://localhost:3000`.
+
 ## Estrutura do projeto
 
 | Arquivo      | Descrição                                            |
@@ -34,3 +46,4 @@ Não precisa instalar nada — basta abrir o arquivo `index.html` em qualquer na
 | `styles.css` | Aparência do aplicativo                              |
 | `app.js`     | Lógica: registros, validação de CPF, filtros, backup |
 | `pdf.js`     | Gerador de PDF próprio, sem dependências externas    |
+| `server.js`  | Servidor estático para hospedagem (Railway etc.)     |
