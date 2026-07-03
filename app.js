@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  var CHAVE_ARMAZENAMENTO = "controle-aula-eventual:registros";
+  var CHAVE_CODIGO = "controle-aula-eventual:codigo-acesso";
+  var CHAVE_ANTIGA = "controle-aula-eventual:registros"; // dados da versão sem banco
 
   var MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -51,23 +52,83 @@
     return div.innerHTML;
   }
 
-  // ===================== Persistência =====================
+  // ===================== Comunicação com o servidor =====================
 
-  function carregarRegistros() {
-    try {
-      var dados = JSON.parse(localStorage.getItem(CHAVE_ARMAZENAMENTO));
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
-      return [];
+  function codigoAcesso() {
+    return localStorage.getItem(CHAVE_CODIGO) || "";
+  }
+
+  function pedirCodigo(mensagem) {
+    var codigo = prompt(mensagem ||
+      "Digite o código de acesso do Controle de Aula Eventual:");
+    if (codigo === null) return false;
+    localStorage.setItem(CHAVE_CODIGO, codigo.trim());
+    return true;
+  }
+
+  async function requisicaoApi(metodo, caminho, corpo) {
+    for (var tentativa = 0; tentativa < 5; tentativa++) {
+      var opcoes = {
+        method: metodo,
+        headers: { "Content-Type": "application/json" }
+      };
+      var codigo = codigoAcesso();
+      if (codigo) opcoes.headers["X-Codigo-Acesso"] = codigo;
+      if (corpo !== undefined) opcoes.body = JSON.stringify(corpo);
+
+      var resposta;
+      try {
+        resposta = await fetch(caminho, opcoes);
+      } catch (e) {
+        throw new Error("Sem conexão com o servidor. Verifique a internet e tente novamente.");
+      }
+
+      if (resposta.status === 401) {
+        var continuar = pedirCodigo(tentativa === 0
+          ? "Digite o código de acesso do Controle de Aula Eventual:"
+          : "Código incorreto. Tente novamente:");
+        if (!continuar) throw new Error("É preciso informar o código de acesso para usar o app.");
+        continue;
+      }
+
+      var dados = await resposta.json().catch(function () { return {}; });
+      if (!resposta.ok) {
+        throw new Error(dados.erro || "Erro no servidor (" + resposta.status + ").");
+      }
+      return dados;
     }
+    throw new Error("É preciso informar o código de acesso para usar o app.");
   }
 
-  function salvarRegistros(registros) {
-    localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(registros));
-  }
-
-  var registros = carregarRegistros();
+  var registros = [];
   var idEmEdicao = null;
+
+  async function recarregarRegistros() {
+    registros = await requisicaoApi("GET", "/api/registros");
+    atualizarTudo();
+  }
+
+  // Migra dados salvos pela versão antiga (localStorage) para o banco.
+  async function migrarDadosAntigos() {
+    var antigos;
+    try {
+      antigos = JSON.parse(localStorage.getItem(CHAVE_ANTIGA));
+    } catch (e) {
+      antigos = null;
+    }
+    if (!Array.isArray(antigos) || !antigos.length) return;
+
+    var enviar = confirm("Encontrei " + antigos.length + " aula(s) salvas apenas neste " +
+      "navegador (versão anterior do app).\n\nEnviar para o banco de dados " +
+      "para ficarem acessíveis em qualquer dispositivo?");
+    if (!enviar) return;
+
+    await requisicaoApi("POST", "/api/registros/importar",
+      { registros: antigos, substituir: false });
+    localStorage.removeItem(CHAVE_ANTIGA);
+    await recarregarRegistros();
+    alert("Dados enviados para o banco com sucesso.");
+  }
 
   // ===================== Formulário =====================
 
@@ -95,11 +156,17 @@
     return digitos.length === 11;
   }
 
+  function limparFormulario() {
+    form.reset();
+    porId("data-aula").value = new Date().toISOString().slice(0, 10);
+    porId("qtd-aulas").value = 1;
+  }
+
   // Data padrão: hoje
   porId("data-aula").value = new Date().toISOString().slice(0, 10);
   porId("filtro-mes").value = new Date().toISOString().slice(0, 7);
 
-  form.addEventListener("submit", function (evento) {
+  form.addEventListener("submit", async function (evento) {
     evento.preventDefault();
 
     var cpfEventualOk = validarCampoCpf(campoCpfEventual);
@@ -126,27 +193,24 @@
       cpfProfessor: formatarCpf(campoCpfProfessor.value)
     };
 
-    if (idEmEdicao) {
-      var indice = registros.findIndex(function (r) { return r.id === idEmEdicao; });
-      if (indice >= 0) registros[indice] = registro;
-      encerrarEdicao();
-    } else {
-      registros.push(registro);
+    var botao = porId("btn-salvar");
+    botao.disabled = true;
+    try {
+      await requisicaoApi("POST", "/api/registros", registro);
+      if (idEmEdicao) encerrarEdicao();
+      limparFormulario();
+      await recarregarRegistros();
+      porId("nome-eventual").focus();
+    } catch (erro) {
+      alert("Não foi possível salvar: " + erro.message);
+    } finally {
+      botao.disabled = false;
     }
-
-    salvarRegistros(registros);
-    form.reset();
-    porId("data-aula").value = new Date().toISOString().slice(0, 10);
-    porId("qtd-aulas").value = 1;
-    atualizarTudo();
-    porId("nome-eventual").focus();
   });
 
   porId("btn-cancelar-edicao").addEventListener("click", function () {
     encerrarEdicao();
-    form.reset();
-    porId("data-aula").value = new Date().toISOString().slice(0, 10);
-    porId("qtd-aulas").value = 1;
+    limparFormulario();
   });
 
   function iniciarEdicao(registro) {
@@ -201,7 +265,7 @@
     porId("msg-sem-registros").hidden = registros.length > 0;
   }
 
-  porId("tabela-registros").addEventListener("click", function (evento) {
+  porId("tabela-registros").addEventListener("click", async function (evento) {
     var botao = evento.target.closest("button[data-acao]");
     if (!botao) return;
     var registro = registros.find(function (r) { return r.id === botao.dataset.id; });
@@ -213,10 +277,13 @@
       var confirmar = confirm("Excluir a aula de " + registro.disciplina + " em " +
         formatarData(registro.data) + " (" + registro.nomeEventual + ")?");
       if (!confirmar) return;
-      registros = registros.filter(function (r) { return r.id !== registro.id; });
-      if (idEmEdicao === registro.id) encerrarEdicao();
-      salvarRegistros(registros);
-      atualizarTudo();
+      try {
+        await requisicaoApi("DELETE", "/api/registros/" + registro.id);
+        if (idEmEdicao === registro.id) encerrarEdicao();
+        await recarregarRegistros();
+      } catch (erro) {
+        alert("Não foi possível excluir: " + erro.message);
+      }
     }
   });
 
@@ -362,7 +429,7 @@
 
     var nomeArquivo = "relatorio-" +
       nomeEventual.toLowerCase().normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[̀-ͯ]/g, "")
         .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
       "-" + mes + ".pdf";
 
@@ -398,33 +465,21 @@
     var arquivo = evento.target.files[0];
     if (!arquivo) return;
     var leitor = new FileReader();
-    leitor.onload = function () {
+    leitor.onload = async function () {
       try {
         var dados = JSON.parse(leitor.result);
-        if (!Array.isArray(dados)) throw new Error("formato inválido");
-        var validos = dados.filter(function (r) {
-          return r && r.nomeEventual && r.cpfEventual && r.data;
-        });
-        if (!validos.length) throw new Error("nenhum registro válido");
+        if (!Array.isArray(dados) || !dados.length) throw new Error("o arquivo não é uma exportação válida deste app.");
 
         var substituir = confirm(
-          "Importar " + validos.length + " registro(s)?\n\n" +
+          "Importar " + dados.length + " registro(s)?\n\n" +
           "OK = substituir os dados atuais\n" +
           "Cancelar = adicionar aos dados existentes");
-        if (substituir) {
-          registros = validos;
-        } else {
-          var idsExistentes = {};
-          registros.forEach(function (r) { idsExistentes[r.id] = true; });
-          validos.forEach(function (r) {
-            if (!idsExistentes[r.id]) registros.push(r);
-          });
-        }
-        salvarRegistros(registros);
-        atualizarTudo();
-        alert("Dados importados com sucesso.");
-      } catch (e) {
-        alert("Não foi possível importar: o arquivo não é uma exportação válida deste app.");
+        var resultado = await requisicaoApi("POST", "/api/registros/importar",
+          { registros: dados, substituir: substituir });
+        await recarregarRegistros();
+        alert(resultado.importados + " registro(s) importado(s) com sucesso.");
+      } catch (erro) {
+        alert("Não foi possível importar: " + erro.message);
       }
       evento.target.value = "";
     };
@@ -440,5 +495,12 @@
     atualizarPrevia();
   }
 
-  atualizarTudo();
+  (async function iniciar() {
+    try {
+      await recarregarRegistros();
+      await migrarDadosAntigos();
+    } catch (erro) {
+      alert(erro.message);
+    }
+  })();
 })();

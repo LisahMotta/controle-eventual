@@ -14,36 +14,40 @@ Aplicativo web para registrar aulas ministradas por professores eventuais (subst
 - **Validação de CPF** (dígitos verificadores) com máscara automática `000.000.000-00`
 - **Lista de aulas registradas** com edição e exclusão
 - **Relatório mensal em PDF** por eventual, com todas as aulas do mês, o **total de aulas ministradas** e campos de assinatura (eventual e direção) para conferência
+- **Banco de dados central** (PostgreSQL): os registros ficam acessíveis de qualquer computador ou celular
+- **Código de acesso** opcional para proteger os dados (o app guarda CPFs)
 - **Exportar / importar dados** em arquivo JSON, como cópia de segurança
 
 ## Como usar
 
-Não precisa instalar nada — basta abrir o arquivo `index.html` em qualquer navegador moderno (Chrome, Edge, Firefox). Funciona offline.
-
 1. Preencha o formulário **Registrar aula** e clique em **Salvar registro**.
-2. As aulas ficam listadas em **Aulas registradas** (salvas no próprio navegador).
+2. As aulas ficam listadas em **Aulas registradas**, salvas no banco de dados — qualquer dispositivo que abrir o site vê os mesmos registros.
 3. Em **Relatório mensal do eventual**, escolha o eventual e o mês e clique em **⬇ Gerar relatório em PDF** — o arquivo é baixado automaticamente.
 
-> **Importante:** os dados ficam salvos apenas no navegador em que foram digitados (localStorage). Use o botão **Exportar dados** periodicamente para guardar uma cópia de segurança, e **Importar dados** para restaurá-la em outro computador.
+Na primeira visita (se o código de acesso estiver ativado), o app pede o código uma única vez e o memoriza no dispositivo.
 
-## Publicar no Railway (ou similar)
+## Publicar no Railway
 
-O projeto já vem com um servidor Node embutido (`server.js`, sem dependências) e `package.json` com o script `start`, então o Railway detecta e publica automaticamente:
+1. Acesse [railway.app](https://railway.app) e crie um novo projeto com **Deploy from GitHub repo**, escolhendo este repositório.
+2. No projeto, clique em **Create → Database → Add PostgreSQL**. O Railway cria o banco.
+3. No serviço do app, abra **Variables** e adicione:
+   - `DATABASE_URL` → clique em **Add Reference** e escolha a `DATABASE_URL` do Postgres criado;
+   - `APP_SENHA` → o código de acesso que a escola vai usar (ex.: `escola123`). **Recomendado**, pois sem ele qualquer pessoa com o link vê os CPFs.
+4. Em **Settings → Networking → Generate Domain**, gere a URL pública do app.
 
-1. Acesse [railway.app](https://railway.app) e crie um novo projeto com **Deploy from GitHub repo**.
-2. Escolha este repositório e o branch desejado.
-3. O Railway detecta o Node, roda `npm start` e gera a URL pública do app.
+A tabela do banco é criada automaticamente na primeira execução — não precisa rodar nenhum comando.
 
-Nenhuma variável de ambiente é necessária — o servidor usa a porta definida pelo Railway (`PORT`) automaticamente.
+### Rodando sem banco (teste local)
 
-Para testar localmente: `npm start` e abra `http://localhost:3000`.
+Sem a variável `DATABASE_URL`, o servidor guarda os registros em um arquivo local (`dados/registros.json`): `npm start` e abra `http://localhost:3000`. No Railway, porém, use sempre o PostgreSQL — arquivos locais são apagados a cada novo deploy.
 
 ## Estrutura do projeto
 
-| Arquivo      | Descrição                                            |
-| ------------ | ---------------------------------------------------- |
-| `index.html` | Estrutura da página (formulário, listas, relatório)  |
-| `styles.css` | Aparência do aplicativo                              |
-| `app.js`     | Lógica: registros, validação de CPF, filtros, backup |
-| `pdf.js`     | Gerador de PDF próprio, sem dependências externas    |
-| `server.js`  | Servidor estático para hospedagem (Railway etc.)     |
+| Arquivo            | Descrição                                                        |
+| ------------------ | ---------------------------------------------------------------- |
+| `index.html`       | Estrutura da página (formulário, listas, relatório)              |
+| `styles.css`       | Aparência do aplicativo                                          |
+| `app.js`           | Lógica da tela: validação de CPF, filtros, chamadas ao servidor  |
+| `pdf.js`           | Gerador de PDF próprio, sem dependências externas                |
+| `server.js`        | Servidor: arquivos do app + API de registros + código de acesso  |
+| `armazenamento.js` | Camada de dados: PostgreSQL (Railway) ou arquivo local (testes)  |
