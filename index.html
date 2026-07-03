@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Aula Eventual</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topo">
+    <h1>📋 Controle de Aula Eventual</h1>
+    <p>Registro de aulas ministradas por professores eventuais</p>
+  </header>
+
+  <main>
+    <!-- ===== Cadastro de aula ===== -->
+    <section class="cartao" id="secao-cadastro">
+      <h2>Registrar aula</h2>
+      <form id="form-aula" autocomplete="off">
+        <div class="grade">
+          <div class="campo">
+            <label for="nome-eventual">Nome do eventual *</label>
+            <input type="text" id="nome-eventual" required placeholder="Nome completo do professor eventual" />
+          </div>
+          <div class="campo">
+            <label for="cpf-eventual">CPF do eventual *</label>
+            <input type="text" id="cpf-eventual" required inputmode="numeric" maxlength="14" placeholder="000.000.000-00" />
+            <span class="erro" id="erro-cpf-eventual"></span>
+          </div>
+          <div class="campo">
+            <label for="data-aula">Data da aula *</label>
+            <input type="date" id="data-aula" required />
+          </div>
+          <div class="campo">
+            <label for="serie">Série / Turma *</label>
+            <input type="text" id="serie" required placeholder="Ex.: 6º ano A" list="lista-series" />
+            <datalist id="lista-series"></datalist>
+          </div>
+          <div class="campo">
+            <label for="disciplina">Disciplina *</label>
+            <input type="text" id="disciplina" required placeholder="Ex.: Matemática" list="lista-disciplinas" />
+            <datalist id="lista-disciplinas">
+              <option value="Língua Portuguesa"></option>
+              <option value="Matemática"></option>
+              <option value="História"></option>
+              <option value="Geografia"></option>
+              <option value="Ciências"></option>
+              <option value="Arte"></option>
+              <option value="Educação Física"></option>
+              <option value="Inglês"></option>
+              <option value="Física"></option>
+              <option value="Química"></option>
+              <option value="Biologia"></option>
+              <option value="Filosofia"></option>
+              <option value="Sociologia"></option>
+            </datalist>
+          </div>
+          <div class="campo">
+            <label for="qtd-aulas">Quantidade de aulas *</label>
+            <input type="number" id="qtd-aulas" required min="1" max="10" value="1" />
+          </div>
+          <div class="campo">
+            <label for="nome-professor">Nome do professor substituído *</label>
+            <input type="text" id="nome-professor" required placeholder="Professor titular que faltou" />
+          </div>
+          <div class="campo">
+            <label for="cpf-professor">CPF do professor substituído *</label>
+            <input type="text" id="cpf-professor" required inputmode="numeric" maxlength="14" placeholder="000.000.000-00" />
+            <span class="erro" id="erro-cpf-professor"></span>
+          </div>
+        </div>
+        <div class="acoes">
+          <button type="submit" class="btn btn-primario" id="btn-salvar">Salvar registro</button>
+          <button type="button" class="btn" id="btn-cancelar-edicao" hidden>Cancelar edição</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== Registros ===== -->
+    <section class="cartao" id="secao-registros">
+      <div class="cabecalho-secao">
+        <h2>Aulas registradas</h2>
+        <div class="ferramentas">
+          <button type="button" class="btn btn-pequeno" id="btn-exportar" title="Baixar cópia de segurança dos dados">Exportar dados</button>
+          <button type="button" class="btn btn-pequeno" id="btn-importar" title="Restaurar dados de um arquivo exportado">Importar dados</button>
+          <input type="file" id="arquivo-importar" accept=".json" hidden />
+        </div>
+      </div>
+      <div class="tabela-rolagem">
+        <table id="tabela-registros">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Eventual</th>
+              <th>CPF eventual</th>
+              <th>Série</th>
+              <th>Disciplina</th>
+              <th>Aulas</th>
+              <th>Prof. substituído</th>
+              <th>CPF prof.</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="vazio" id="msg-sem-registros">Nenhuma aula registrada ainda.</p>
+    </section>
+
+    <!-- ===== Relatório mensal ===== -->
+    <section class="cartao" id="secao-relatorio">
+      <h2>Relatório mensal do eventual</h2>
+      <div class="grade grade-relatorio">
+        <div class="campo">
+          <label for="filtro-eventual">Eventual</label>
+          <select id="filtro-eventual">
+            <option value="">— Selecione o eventual —</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="filtro-mes">Mês de referência</label>
+          <input type="month" id="filtro-mes" />
+        </div>
+        <div class="campo campo-botao">
+          <button type="button" class="btn btn-primario" id="btn-gerar-pdf">⬇ Gerar relatório em PDF</button>
+        </div>
+      </div>
+
+      <div id="previa-relatorio" hidden>
+        <h3 id="titulo-previa"></h3>
+        <div class="tabela-rolagem">
+          <table id="tabela-relatorio">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Série</th>
+                <th>Disciplina</th>
+                <th>Aulas</th>
+                <th>Prof. substituído</th>
+                <th>CPF prof.</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="total" id="total-previa"></p>
+      </div>
+      <p class="vazio" id="msg-relatorio-vazio" hidden>Nenhuma aula encontrada para o eventual e mês selecionados.</p>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <p>Os dados ficam salvos apenas neste navegador. Use “Exportar dados” periodicamente como cópia de segurança.</p>
+  </footer>
+
+  <script src="pdf.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

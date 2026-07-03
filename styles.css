@@ -1,0 +1,236 @@
+:root {
+  --primaria: #1e5fa8;
+  --primaria-escura: #164a85;
+  --fundo: #f2f5f9;
+  --texto: #1f2937;
+  --borda: #d3dbe5;
+  --erro: #c0392b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  background: var(--fundo);
+  color: var(--texto);
+  line-height: 1.5;
+}
+
+.topo {
+  background: var(--primaria);
+  color: #fff;
+  padding: 1.2rem 1.5rem;
+}
+
+.topo h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.topo p {
+  margin: 0.2rem 0 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cartao {
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 1.3rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.cartao h2 {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  color: var(--primaria-escura);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.9rem 1.2rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.campo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.campo input:focus,
+.campo select:focus {
+  outline: 2px solid var(--primaria);
+  outline-offset: 1px;
+}
+
+.campo input.invalido {
+  border-color: var(--erro);
+}
+
+.erro {
+  color: var(--erro);
+  font-size: 0.78rem;
+  min-height: 1em;
+}
+
+.acoes {
+  margin-top: 1.1rem;
+  display: flex;
+  gap: 0.7rem;
+}
+
+.btn {
+  padding: 0.6rem 1.3rem;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #eef2f7;
+}
+
+.btn-primario {
+  background: var(--primaria);
+  border-color: var(--primaria);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-primario:hover {
+  background: var(--primaria-escura);
+}
+
+.btn-pequeno {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.cabecalho-secao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.cabecalho-secao h2 {
+  margin: 0;
+}
+
+.ferramentas {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--borda);
+  white-space: nowrap;
+}
+
+th {
+  background: #f7f9fc;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4b5563;
+}
+
+tbody tr:hover {
+  background: #f4f8fd;
+}
+
+.btn-linha {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.15rem 0.3rem;
+}
+
+.btn-linha:hover {
+  transform: scale(1.15);
+}
+
+.vazio {
+  color: #6b7280;
+  font-style: italic;
+  margin: 0.8rem 0 0;
+}
+
+.grade-relatorio {
+  align-items: end;
+}
+
+.campo-botao {
+  justify-content: flex-end;
+}
+
+#previa-relatorio {
+  margin-top: 1.3rem;
+  border-top: 1px dashed var(--borda);
+  padding-top: 1rem;
+}
+
+#previa-relatorio h3 {
+  margin: 0 0 0.7rem;
+  font-size: 1rem;
+}
+
+.total {
+  margin: 0.9rem 0 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primaria-escura);
+}
+
+.rodape {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.82rem;
+  padding: 0 1rem 2rem;
+}
