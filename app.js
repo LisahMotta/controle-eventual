@@ -985,8 +985,20 @@
     atualizarPrevia();
   }
 
+  async function verificarBanco() {
+    try {
+      var sessao = await requisicaoApi("GET", "/api/sessao");
+      // Avisa quando o servidor está sem banco de dados (modo arquivo),
+      // pois nesse modo os dados são apagados a cada atualização do app
+      porId("aviso-banco").hidden = sessao.armazenamento !== "arquivo";
+    } catch (e) {
+      // sem conexão: o carregamento inicial já mostra o erro
+    }
+  }
+
   (async function iniciar() {
     try {
+      await verificarBanco();
       await recarregarDados();
       await migrarDadosAntigos();
     } catch (erro) {

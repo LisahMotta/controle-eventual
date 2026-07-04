@@ -12,6 +12,13 @@
     <p>Registro de aulas ministradas por professores eventuais</p>
   </header>
 
+  <div class="aviso-banco" id="aviso-banco" hidden>
+    ⚠️ <strong>Banco de dados não configurado!</strong> Os dados estão sendo salvos
+    temporariamente e serão <strong>perdidos a cada atualização do sistema</strong>.
+    No Railway: adicione um PostgreSQL (Create → Database) e configure a variável
+    <code>DATABASE_URL</code> no serviço do app (Variables → Add Reference).
+  </div>
+
   <nav class="abas" id="barra-abas">
     <button type="button" class="aba ativa" data-aba="aulas">Registrar aula</button>
     <button type="button" class="aba" data-aba="eventuais">Eventuais</button>
