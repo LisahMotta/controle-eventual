@@ -23,6 +23,11 @@ body {
   background: var(--primaria);
   color: #fff;
   padding: 1.2rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .topo h1 {
@@ -35,6 +40,80 @@ body {
   opacity: 0.9;
   font-size: 0.95rem;
 }
+
+.usuario-atual {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.9rem;
+}
+
+.btn.btn-claro {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.btn.btn-claro:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ===== Tela de acesso ===== */
+.tela-acesso {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primaria), var(--primaria-escura));
+}
+
+.tela-acesso[hidden] {
+  display: none;
+}
+
+.cartao-acesso {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.cartao-acesso h1 {
+  font-size: 1.3rem;
+  margin: 0 0 1.2rem;
+  text-align: center;
+  color: var(--primaria-escura);
+}
+
+.cartao-acesso h2 {
+  font-size: 1.1rem;
+  margin: 0 0 1rem;
+  color: var(--texto);
+}
+
+.cartao-acesso .campo {
+  margin-bottom: 0.9rem;
+}
+
+.cartao-acesso .btn-primario {
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+.perfil-etiqueta {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.perfil-GOE { background: #dbeafe; color: #1e40af; }
+.perfil-Secretário { background: #dcfce7; color: #166534; }
+.perfil-AOE { background: #fef9c3; color: #854d0e; }
 
 .aviso-banco {
   background: #fee2e2;

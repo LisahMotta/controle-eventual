@@ -87,50 +87,43 @@
 
   // ===================== Comunicação com o servidor =====================
 
-  function codigoAcesso() {
-    return localStorage.getItem(CHAVE_CODIGO) || "";
+  var CHAVE_TOKEN = "controle-aula-eventual:token";
+
+  function token() {
+    return localStorage.getItem(CHAVE_TOKEN) || "";
   }
 
-  function pedirCodigo(mensagem) {
-    var codigo = prompt(mensagem ||
-      "Digite o código de acesso do Controle de Aula Eventual:");
-    if (codigo === null) return false;
-    localStorage.setItem(CHAVE_CODIGO, codigo.trim());
-    return true;
-  }
+  var usuarioAtual = null;
+  var permissoes = {};
+
+  // Erro que indica falta de sessão (dispara a volta para a tela de login)
+  function ErroSemSessao(msg) { this.message = msg; this.semSessao = true; }
 
   async function requisicaoApi(metodo, caminho, corpo) {
-    for (var tentativa = 0; tentativa < 5; tentativa++) {
-      var opcoes = {
-        method: metodo,
-        headers: { "Content-Type": "application/json" }
-      };
-      var codigo = codigoAcesso();
-      if (codigo) opcoes.headers["X-Codigo-Acesso"] = codigo;
-      if (corpo !== undefined) opcoes.body = JSON.stringify(corpo);
+    var opcoes = {
+      method: metodo,
+      headers: { "Content-Type": "application/json" }
+    };
+    var t = token();
+    if (t) opcoes.headers["Authorization"] = "Bearer " + t;
+    if (corpo !== undefined) opcoes.body = JSON.stringify(corpo);
 
-      var resposta;
-      try {
-        resposta = await fetch(caminho, opcoes);
-      } catch (e) {
-        throw new Error("Sem conexão com o servidor. Verifique a internet e tente novamente.");
-      }
-
-      if (resposta.status === 401) {
-        var continuar = pedirCodigo(tentativa === 0
-          ? "Digite o código de acesso do Controle de Aula Eventual:"
-          : "Código incorreto. Tente novamente:");
-        if (!continuar) throw new Error("É preciso informar o código de acesso para usar o app.");
-        continue;
-      }
-
-      var dados = await resposta.json().catch(function () { return {}; });
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro no servidor (" + resposta.status + ").");
-      }
-      return dados;
+    var resposta;
+    try {
+      resposta = await fetch(caminho, opcoes);
+    } catch (e) {
+      throw new Error("Sem conexão com o servidor. Verifique a internet e tente novamente.");
     }
-    throw new Error("É preciso informar o código de acesso para usar o app.");
+
+    var dados = await resposta.json().catch(function () { return {}; });
+
+    if (resposta.status === 401) {
+      throw new ErroSemSessao(dados.erro || "Sessão expirada. Faça login novamente.");
+    }
+    if (!resposta.ok) {
+      throw new Error(dados.erro || "Erro no servidor (" + resposta.status + ").");
+    }
+    return dados;
   }
 
   var registros = [];
@@ -355,6 +348,15 @@
     porId("btn-cancelar-eventual").hidden = true;
   }
 
+  // Botões de editar/excluir; só aparecem para quem pode alterar dados
+  function botoesAcao(id) {
+    if (!permissoes.alterarDados) return "<td></td>";
+    return "<td>" +
+      '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + id + '">✏️</button>' +
+      '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + id + '">🗑️</button>' +
+      "</td>";
+  }
+
   function atualizarTabelaEventuais() {
     var corpo = porId("tabela-eventuais").querySelector("tbody");
     corpo.innerHTML = "";
@@ -363,10 +365,7 @@
       linha.innerHTML =
         "<td>" + escapeHtml(e.nome) + "</td>" +
         "<td>" + escapeHtml(e.cpf) + "</td>" +
-        "<td>" +
-        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + e.id + '">✏️</button>' +
-        '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + e.id + '">🗑️</button>' +
-        "</td>";
+        botoesAcao(e.id);
       corpo.appendChild(linha);
     });
     porId("msg-sem-eventuais").hidden = eventuais.length > 0;
@@ -496,23 +495,29 @@
   var formAula = porId("form-aula");
   var idEmEdicao = null;
 
-  function preencherSelectComEventuais(select) {
+  function preencherSelectComEventuais(select, opcaoBranco) {
     var valorAtual = select.value;
     select.innerHTML = '<option value="">— Selecione o eventual —</option>';
+    if (opcaoBranco) {
+      var branco = document.createElement("option");
+      branco.value = "__branco__";
+      branco.textContent = "⚠ Emergência — professor não cadastrado (folha em branco)";
+      select.appendChild(branco);
+    }
     eventuais.forEach(function (e) {
       var opcao = document.createElement("option");
       opcao.value = e.id;
       opcao.textContent = e.nome + " — " + e.cpf;
       select.appendChild(opcao);
     });
-    if (valorAtual && eventuais.some(function (e) { return e.id === valorAtual; })) {
-      select.value = valorAtual;
-    }
+    var valores = eventuais.map(function (e) { return e.id; });
+    if (opcaoBranco) valores.push("__branco__");
+    if (valorAtual && valores.indexOf(valorAtual) >= 0) select.value = valorAtual;
   }
 
   function atualizarSelectEventuais() {
-    preencherSelectComEventuais(porId("sel-eventual"));
-    preencherSelectComEventuais(porId("folha-eventual"));
+    preencherSelectComEventuais(porId("sel-eventual"), false);
+    preencherSelectComEventuais(porId("folha-eventual"), true);
     porId("dica-sem-eventuais").hidden = eventuais.length > 0;
     atualizarCpfEventual();
   }
@@ -737,10 +742,7 @@
         "<td>" + r.qtdAulas + "</td>" +
         "<td>" + escapeHtml(r.nomeProfessor) + "</td>" +
         "<td>" + escapeHtml(r.cpfProfessor) + "</td>" +
-        "<td>" +
-        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + r.id + '">✏️</button>' +
-        '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + r.id + '">🗑️</button>' +
-        "</td>";
+        botoesAcao(r.id);
       corpo.appendChild(linha);
     });
 
@@ -928,13 +930,20 @@
     var id = porId("folha-eventual").value;
     var mes = porId("folha-mes").value;
 
-    var eventual = eventuais.find(function (e) { return e.id === id; });
-    if (!eventual) {
-      alert("Selecione o eventual. Se a lista estiver vazia, cadastre na aba Eventuais.");
-      return;
-    }
     if (!mes) {
       alert("Selecione o mês de referência.");
+      return;
+    }
+
+    // Folha em branco para o eventual de emergência ainda não cadastrado:
+    // o nome e o CPF viram linhas para preencher à mão.
+    var emBranco = id === "__branco__";
+    var eventual = emBranco
+      ? { nome: "____________________________________", cpf: "__________________" }
+      : eventuais.find(function (e) { return e.id === id; });
+
+    if (!eventual) {
+      alert("Selecione o eventual, ou escolha a opção de folha em branco para emergência.");
       return;
     }
 
@@ -972,11 +981,11 @@
       assinaturas: ["Assinatura do eventual", "Assinatura da direção"]
     });
 
-    var nomeArquivo = "folha-controle-" +
+    var baseNome = emBranco ? "em-branco" :
       eventual.nome.toLowerCase().normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
-      "-" + mes + ".pdf";
+        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    var nomeArquivo = "folha-controle-" + baseNome + "-" + mes + ".pdf";
 
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -1044,6 +1053,201 @@
     leitor.readAsText(arquivo);
   });
 
+  // ===================== Usuários =====================
+
+  var formUsuario = porId("form-usuario");
+  var usuarios = [];
+  var idUsuarioEmEdicao = null;
+
+  formUsuario.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+    var senha = porId("senha-usuario-cad").value;
+    if (!idUsuarioEmEdicao && senha.length < 4) {
+      alert("A senha precisa ter pelo menos 4 caracteres.");
+      return;
+    }
+    var dados = {
+      id: idUsuarioEmEdicao || undefined,
+      nome: porId("nome-usuario-cad").value.trim(),
+      usuario: porId("login-usuario-cad").value.trim(),
+      perfil: porId("perfil-usuario-cad").value,
+      senha: senha
+    };
+    var botao = porId("btn-salvar-usuario");
+    botao.disabled = true;
+    try {
+      await requisicaoApi("POST", "/api/usuarios", dados);
+      encerrarEdicaoUsuario();
+      formUsuario.reset();
+      await carregarUsuarios();
+    } catch (erro) {
+      alert("Não foi possível salvar: " + erro.message);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  porId("btn-cancelar-usuario").addEventListener("click", function () {
+    encerrarEdicaoUsuario();
+    formUsuario.reset();
+  });
+
+  function encerrarEdicaoUsuario() {
+    idUsuarioEmEdicao = null;
+    porId("btn-salvar-usuario").textContent = "Cadastrar usuário";
+    porId("btn-cancelar-usuario").hidden = true;
+    porId("dica-senha-usuario").hidden = true;
+    porId("senha-usuario-cad").placeholder = "mín. 4 caracteres";
+  }
+
+  async function carregarUsuarios() {
+    if (!permissoes.gerenciarUsuarios) return;
+    usuarios = await requisicaoApi("GET", "/api/usuarios");
+    var corpo = porId("tabela-usuarios").querySelector("tbody");
+    corpo.innerHTML = "";
+    usuarios.forEach(function (u) {
+      var linha = document.createElement("tr");
+      linha.innerHTML =
+        "<td>" + escapeHtml(u.nome) + "</td>" +
+        "<td>" + escapeHtml(u.usuario) + "</td>" +
+        '<td><span class="perfil-etiqueta perfil-' + escapeHtml(u.perfil) + '">' +
+          escapeHtml(u.perfil) + "</span></td>" +
+        "<td>" +
+        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + u.id + '">✏️</button>' +
+        (u.id === usuarioAtual.id ? "" :
+          '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + u.id + '">🗑️</button>') +
+        "</td>";
+      corpo.appendChild(linha);
+    });
+  }
+
+  porId("tabela-usuarios").addEventListener("click", async function (evento) {
+    var botao = evento.target.closest("button[data-acao]");
+    if (!botao) return;
+    var usuario = usuarios.find(function (u) { return u.id === botao.dataset.id; });
+    if (!usuario) return;
+
+    if (botao.dataset.acao === "editar") {
+      idUsuarioEmEdicao = usuario.id;
+      porId("nome-usuario-cad").value = usuario.nome;
+      porId("login-usuario-cad").value = usuario.usuario;
+      porId("perfil-usuario-cad").value = usuario.perfil;
+      porId("senha-usuario-cad").value = "";
+      porId("senha-usuario-cad").placeholder = "deixe em branco para manter";
+      porId("dica-senha-usuario").hidden = false;
+      porId("btn-salvar-usuario").textContent = "Atualizar usuário";
+      porId("btn-cancelar-usuario").hidden = false;
+      porId("nome-usuario-cad").focus();
+    } else if (botao.dataset.acao === "excluir") {
+      if (!confirm("Excluir o usuário " + usuario.nome + " (" + usuario.perfil + ")?")) return;
+      try {
+        await requisicaoApi("DELETE", "/api/usuarios/" + usuario.id);
+        await carregarUsuarios();
+      } catch (erro) {
+        alert("Não foi possível excluir: " + erro.message);
+      }
+    }
+  });
+
+  // ===================== Auditoria =====================
+
+  async function carregarAuditoria() {
+    if (!permissoes.verAuditoria) return;
+    var eventos = await requisicaoApi("GET", "/api/auditoria");
+    var corpo = porId("tabela-auditoria").querySelector("tbody");
+    corpo.innerHTML = "";
+    eventos.forEach(function (e) {
+      var quando = new Date(e.dataHora);
+      var linha = document.createElement("tr");
+      linha.innerHTML =
+        "<td>" + quando.toLocaleString("pt-BR") + "</td>" +
+        "<td>" + escapeHtml(e.usuario) + "</td>" +
+        "<td>" + escapeHtml(e.acao) + "</td>" +
+        "<td>" + escapeHtml(e.detalhe) + "</td>";
+      corpo.appendChild(linha);
+    });
+    porId("msg-sem-auditoria").hidden = eventos.length > 0;
+  }
+
+  porId("btn-atualizar-auditoria").addEventListener("click", function () {
+    carregarAuditoria().catch(function (e) { alert(e.message); });
+  });
+
+  // ===================== Login / sessão =====================
+
+  function mostrarApp() {
+    porId("tela-acesso").hidden = true;
+    porId("app").hidden = false;
+  }
+
+  function mostrarLogin(modoSetup) {
+    porId("app").hidden = true;
+    porId("tela-acesso").hidden = false;
+    porId("form-login").hidden = !!modoSetup;
+    porId("form-setup").hidden = !modoSetup;
+    if (!modoSetup) porId("login-usuario").focus();
+  }
+
+  function aplicarPermissoes() {
+    porId("usuario-nome").innerHTML = escapeHtml(usuarioAtual.nome) +
+      ' <span class="perfil-etiqueta perfil-' + escapeHtml(usuarioAtual.perfil) +
+      '">' + escapeHtml(usuarioAtual.perfil) + "</span>";
+
+    // Mostra/esconde as abas conforme a permissão
+    document.querySelectorAll("#barra-abas .aba[data-perm]").forEach(function (aba) {
+      aba.hidden = !permissoes[aba.dataset.perm];
+    });
+
+    // AOE não edita/exclui dados: as tabelas escondem os botões (feito na renderização)
+    atualizarTudo();
+  }
+
+  porId("form-login").addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+    porId("erro-login").textContent = "";
+    porId("btn-login").disabled = true;
+    try {
+      var resposta = await requisicaoApi("POST", "/api/login", {
+        usuario: porId("login-usuario").value.trim(),
+        senha: porId("login-senha").value
+      });
+      localStorage.setItem(CHAVE_TOKEN, resposta.token);
+      porId("form-login").reset();
+      await entrarNoSistema();
+    } catch (erro) {
+      porId("erro-login").textContent = erro.message;
+    } finally {
+      porId("btn-login").disabled = false;
+    }
+  });
+
+  porId("form-setup").addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+    porId("erro-setup").textContent = "";
+    porId("btn-setup").disabled = true;
+    try {
+      var resposta = await requisicaoApi("POST", "/api/setup", {
+        nome: porId("setup-nome").value.trim(),
+        usuario: porId("setup-usuario").value.trim(),
+        senha: porId("setup-senha").value
+      });
+      localStorage.setItem(CHAVE_TOKEN, resposta.token);
+      porId("form-setup").reset();
+      await entrarNoSistema();
+    } catch (erro) {
+      porId("erro-setup").textContent = erro.message;
+    } finally {
+      porId("btn-setup").disabled = false;
+    }
+  });
+
+  porId("btn-sair").addEventListener("click", function () {
+    localStorage.removeItem(CHAVE_TOKEN);
+    usuarioAtual = null;
+    permissoes = {};
+    mostrarLogin(false);
+  });
+
   // ===================== Inicialização =====================
 
   function atualizarTudo() {
@@ -1056,24 +1260,42 @@
     atualizarPrevia();
   }
 
-  async function verificarBanco() {
-    try {
-      var sessao = await requisicaoApi("GET", "/api/sessao");
-      // Avisa quando o servidor está sem banco de dados (modo arquivo),
-      // pois nesse modo os dados são apagados a cada atualização do app
-      porId("aviso-banco").hidden = sessao.armazenamento !== "arquivo";
-    } catch (e) {
-      // sem conexão: o carregamento inicial já mostra o erro
-    }
+  async function entrarNoSistema() {
+    var sessao = await requisicaoApi("GET", "/api/sessao");
+    usuarioAtual = sessao.usuario;
+    permissoes = sessao.permissoes || {};
+    porId("aviso-banco").hidden = sessao.armazenamento !== "arquivo";
+    mostrarApp();
+    aplicarPermissoes();
+    await recarregarDados();
+    if (permissoes.gerenciarUsuarios) await carregarUsuarios();
+    if (permissoes.verAuditoria) await carregarAuditoria();
+    if (permissoes.alterarDados) await migrarDadosAntigos();
   }
 
   (async function iniciar() {
+    var estado;
     try {
-      await verificarBanco();
-      await recarregarDados();
-      await migrarDadosAntigos();
+      estado = await requisicaoApi("GET", "/api/estado");
     } catch (erro) {
       alert(erro.message);
+      return;
+    }
+    if (estado.precisaConfigurar) {
+      mostrarLogin(true); // primeiro acesso: cria o GOE
+      return;
+    }
+    if (!token()) {
+      mostrarLogin(false);
+      return;
+    }
+    try {
+      await entrarNoSistema();
+    } catch (erro) {
+      // token inválido/expirado ou sem sessão: volta ao login
+      localStorage.removeItem(CHAVE_TOKEN);
+      mostrarLogin(false);
+      if (!erro.semSessao) alert(erro.message);
     }
   })();
 })();

@@ -7,9 +7,60 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- ================= TELA DE ACESSO ================= -->
+  <div class="tela-acesso" id="tela-acesso" hidden>
+    <div class="cartao-acesso">
+      <h1>📋 Controle de Aula Eventual</h1>
+
+      <form id="form-login" autocomplete="off">
+        <h2>Entrar</h2>
+        <div class="campo">
+          <label for="login-usuario">Usuário</label>
+          <input type="text" id="login-usuario" autocomplete="username" required />
+        </div>
+        <div class="campo">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn btn-primario" id="btn-login">Entrar</button>
+        <p class="erro" id="erro-login"></p>
+      </form>
+
+      <form id="form-setup" autocomplete="off" hidden>
+        <h2>Primeiro acesso</h2>
+        <p class="explicacao">
+          Nenhum usuário cadastrado. Crie o usuário <strong>GOE</strong> (administrador),
+          que poderá cadastrar os demais.
+        </p>
+        <div class="campo">
+          <label for="setup-nome">Nome completo</label>
+          <input type="text" id="setup-nome" required />
+        </div>
+        <div class="campo">
+          <label for="setup-usuario">Usuário (login)</label>
+          <input type="text" id="setup-usuario" required />
+        </div>
+        <div class="campo">
+          <label for="setup-senha">Senha (mín. 4 caracteres)</label>
+          <input type="password" id="setup-senha" required />
+        </div>
+        <button type="submit" class="btn btn-primario" id="btn-setup">Criar administrador</button>
+        <p class="erro" id="erro-setup"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= APLICATIVO ================= -->
+  <div id="app" hidden>
   <header class="topo">
-    <h1>📋 Controle de Aula Eventual</h1>
-    <p>Registro de aulas ministradas por professores eventuais</p>
+    <div class="topo-texto">
+      <h1>📋 Controle de Aula Eventual</h1>
+      <p>Registro de aulas ministradas por professores eventuais</p>
+    </div>
+    <div class="usuario-atual">
+      <span id="usuario-nome"></span>
+      <button type="button" class="btn btn-claro btn-pequeno" id="btn-sair">Sair</button>
+    </div>
   </header>
 
   <div class="aviso-banco" id="aviso-banco" hidden>
@@ -22,9 +73,11 @@
   <nav class="abas" id="barra-abas">
     <button type="button" class="aba ativa" data-aba="aulas">Registrar aula</button>
     <button type="button" class="aba" data-aba="eventuais">Eventuais</button>
-    <button type="button" class="aba" data-aba="professores">Professores</button>
+    <button type="button" class="aba" data-aba="professores" data-perm="gerenciarProfessores">Professores</button>
     <button type="button" class="aba" data-aba="folha">Folha de controle</button>
     <button type="button" class="aba" data-aba="relatorio">Relatório</button>
+    <button type="button" class="aba" data-aba="usuarios" data-perm="gerenciarUsuarios">Usuários</button>
+    <button type="button" class="aba" data-aba="auditoria" data-perm="verAuditoria">Auditoria</button>
   </nav>
 
   <main>
@@ -229,6 +282,7 @@
             <label for="folha-eventual">Eventual</label>
             <select id="folha-eventual">
               <option value="">— Selecione o eventual —</option>
+              <option value="__branco__">⚠ Emergência — professor não cadastrado (folha em branco)</option>
             </select>
           </div>
           <div class="campo">
@@ -292,11 +346,95 @@
         <p class="vazio" id="msg-relatorio-vazio" hidden>Nenhuma aula encontrada para o eventual e mês selecionados.</p>
       </section>
     </div>
+
+    <!-- ================= ABA: USUÁRIOS ================= -->
+    <div class="painel" id="aba-usuarios" hidden>
+      <section class="cartao">
+        <h2>Cadastrar usuário</h2>
+        <p class="explicacao">
+          <strong>GOE</strong> e <strong>Secretário</strong> podem alterar dados de professores
+          e eventuais e gerenciar usuários. <strong>AOE</strong> pode apenas cadastrar eventuais
+          e lançar aulas. Só é permitido um GOE e um Secretário; os demais devem ser AOE.
+        </p>
+        <form id="form-usuario" autocomplete="off">
+          <div class="grade">
+            <div class="campo">
+              <label for="nome-usuario-cad">Nome completo *</label>
+              <input type="text" id="nome-usuario-cad" required />
+            </div>
+            <div class="campo">
+              <label for="login-usuario-cad">Usuário (login) *</label>
+              <input type="text" id="login-usuario-cad" required />
+            </div>
+            <div class="campo">
+              <label for="senha-usuario-cad">Senha *</label>
+              <input type="password" id="senha-usuario-cad" autocomplete="new-password" placeholder="mín. 4 caracteres" />
+              <span class="dica" id="dica-senha-usuario" hidden>Deixe em branco para manter a senha atual.</span>
+            </div>
+            <div class="campo">
+              <label for="perfil-usuario-cad">Perfil *</label>
+              <select id="perfil-usuario-cad" required>
+                <option value="AOE">AOE — cadastra eventuais e lança aulas</option>
+                <option value="Secretário">Secretário — altera dados e gerencia usuários</option>
+                <option value="GOE">GOE — administrador (master)</option>
+              </select>
+            </div>
+          </div>
+          <div class="acoes">
+            <button type="submit" class="btn btn-primario" id="btn-salvar-usuario">Cadastrar usuário</button>
+            <button type="button" class="btn" id="btn-cancelar-usuario" hidden>Cancelar edição</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="cartao">
+        <h2>Usuários cadastrados</h2>
+        <div class="tabela-rolagem">
+          <table id="tabela-usuarios">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Usuário</th>
+                <th>Perfil</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= ABA: AUDITORIA ================= -->
+    <div class="painel" id="aba-auditoria" hidden>
+      <section class="cartao">
+        <div class="cabecalho-secao">
+          <h2>Log de auditoria</h2>
+          <button type="button" class="btn btn-pequeno" id="btn-atualizar-auditoria">Atualizar</button>
+        </div>
+        <p class="explicacao">Registro de acessos e alterações no sistema (500 eventos mais recentes).</p>
+        <div class="tabela-rolagem">
+          <table id="tabela-auditoria">
+            <thead>
+              <tr>
+                <th>Data / hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Detalhe</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="vazio" id="msg-sem-auditoria">Nenhum evento registrado ainda.</p>
+      </section>
+    </div>
   </main>
 
   <footer class="rodape">
     <p>Os dados ficam salvos no banco de dados do sistema e podem ser acessados de qualquer dispositivo. Use “Exportar dados” periodicamente como cópia de segurança.</p>
   </footer>
+  </div>
 
   <script src="pdf.js"></script>
   <script src="app.js"></script>

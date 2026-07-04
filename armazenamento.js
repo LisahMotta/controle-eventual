@@ -1,5 +1,6 @@
 /*
- * Camada de armazenamento: registros de aula, eventuais e professores.
+ * Camada de armazenamento: registros de aula, eventuais, professores,
+ * usuários e log de auditoria.
  *
  * - Com a variável de ambiente DATABASE_URL definida (Railway/PostgreSQL),
  *   os dados vão para o banco — acessíveis de qualquer dispositivo.
@@ -10,6 +11,10 @@ const fs = require("fs");
 const path = require("path");
 
 const URL_BANCO = process.env.DATABASE_URL;
+
+// Coleções que entram na exportação/importação de cópia de segurança
+// (não inclui usuários nem auditoria).
+const DADOS_EXPORTAVEIS = ["registros", "eventuais", "professores"];
 
 // Descrição das coleções: colunas no banco <-> campos usados pelo app
 const COLECOES = {
@@ -70,6 +75,44 @@ const COLECOES = {
       series TEXT NOT NULL DEFAULT '[]'
     )`,
     ordem: "nome"
+  },
+  usuarios: {
+    tabela: "usuarios",
+    campos: [
+      ["id", "id"],
+      ["nome", "nome"],
+      ["usuario", "usuario"],
+      ["senha", "senha"], // hash "salt:hash"
+      ["perfil", "perfil"],
+      ["criado_em", "criadoEm"]
+    ],
+    criacao: `CREATE TABLE IF NOT EXISTS usuarios (
+      id TEXT PRIMARY KEY,
+      nome TEXT NOT NULL,
+      usuario TEXT NOT NULL,
+      senha TEXT NOT NULL,
+      perfil TEXT NOT NULL,
+      criado_em TEXT NOT NULL
+    )`,
+    ordem: "nome"
+  },
+  auditoria: {
+    tabela: "auditoria",
+    campos: [
+      ["id", "id"],
+      ["data_hora", "dataHora"],
+      ["usuario", "usuario"],
+      ["acao", "acao"],
+      ["detalhe", "detalhe"]
+    ],
+    criacao: `CREATE TABLE IF NOT EXISTS auditoria (
+      id TEXT PRIMARY KEY,
+      data_hora TEXT NOT NULL,
+      usuario TEXT NOT NULL,
+      acao TEXT NOT NULL,
+      detalhe TEXT NOT NULL DEFAULT ''
+    )`,
+    ordem: "data_hora"
   }
 };
 
@@ -158,7 +201,7 @@ function criarArmazenamentoPostgres() {
       const cliente = await pool.connect();
       try {
         await cliente.query("BEGIN");
-        for (const nome of Object.keys(COLECOES)) {
+        for (const nome of DADOS_EXPORTAVEIS) {
           const itens = dados[nome] || [];
           if (substituir) await cliente.query(`DELETE FROM ${COLECOES[nome].tabela}`);
           for (const item of itens) {
@@ -207,9 +250,9 @@ function criarArmazenamentoArquivo() {
     tipo: "arquivo",
 
     async listar(nome) {
-      const ordem = COLECOES[nome].ordem === "data" ? "data" : "nome";
+      const campo = campoDaOrdem(nome);
       return ler(nome).sort((a, b) =>
-        String(a[ordem] || "").localeCompare(String(b[ordem] || ""), "pt-BR"));
+        String(a[campo] || "").localeCompare(String(b[campo] || ""), "pt-BR"));
     },
 
     async salvar(nome, item) {
@@ -228,7 +271,7 @@ function criarArmazenamentoArquivo() {
     },
 
     async importar(dados, substituir) {
-      for (const nome of Object.keys(COLECOES)) {
+      for (const nome of DADOS_EXPORTAVEIS) {
         const novos = dados[nome] || [];
         let itens = substituir ? [] : ler(nome);
         const existentes = new Set(itens.map(x => x.id));
@@ -239,7 +282,13 @@ function criarArmazenamentoArquivo() {
       }
     }
   };
+
+  // No arquivo os campos são camelCase; traduz a coluna de ordenação
+  function campoDaOrdem(nome) {
+    const par = COLECOES[nome].campos.find(c => c[0] === COLECOES[nome].ordem);
+    return par ? par[1] : "id";
+  }
 }
 
 module.exports = URL_BANCO ? criarArmazenamentoPostgres() : criarArmazenamentoArquivo();
-module.exports.COLECOES = Object.keys(COLECOES);
+module.exports.DADOS_EXPORTAVEIS = DADOS_EXPORTAVEIS;
