@@ -265,7 +265,20 @@
 
   function ligarMascaraCpf(campo, idErro) {
     campo.addEventListener("input", function () {
+      // guarda quantos dígitos existem antes do cursor para
+      // recolocá-lo no mesmo lugar depois de aplicar a máscara
+      var posicao = campo.selectionStart || 0;
+      var digitosAntes = somenteDigitos(campo.value.slice(0, posicao)).length;
+
       campo.value = formatarCpf(campo.value);
+
+      var novaPosicao = 0, contados = 0;
+      while (novaPosicao < campo.value.length && contados < digitosAntes) {
+        if (/\d/.test(campo.value.charAt(novaPosicao))) contados++;
+        novaPosicao++;
+      }
+      campo.setSelectionRange(novaPosicao, novaPosicao);
+
       validarCampoCpf(campo, idErro);
     });
   }
@@ -284,10 +297,18 @@
   }
 
   function exigirCpf(campo, idErro) {
-    if (!validarCampoCpf(campo, idErro)) {
-      porId(idErro).textContent = "Informe um CPF válido (11 dígitos).";
+    var digitos = somenteDigitos(campo.value);
+    if (digitos.length !== 11) {
+      porId(idErro).textContent = "O CPF precisa ter 11 dígitos.";
       campo.classList.add("invalido");
       return false;
+    }
+    if (!cpfValido(campo.value)) {
+      // Não bloqueia: os dígitos verificadores não conferem, mas pode ser
+      // um caso legítimo — deixa a pessoa decidir.
+      return confirm("Atenção: o CPF " + campo.value + " parece estar incorreto " +
+        "(os dígitos verificadores não conferem).\n\n" +
+        "Confira se digitou certo. Deseja salvar mesmo assim?");
     }
     return true;
   }
