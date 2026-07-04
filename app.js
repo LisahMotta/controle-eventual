@@ -938,10 +938,14 @@
       return;
     }
 
-    // 31 linhas em branco, uma para cada dia do mês
+    // Linhas em branco para cada dia do mês; com mais de uma linha por
+    // dia, o eventual pode anotar disciplinas diferentes no mesmo dia
+    var linhasPorDia = parseInt(porId("folha-linhas").value, 10) || 1;
     var linhas = [];
     for (var dia = 1; dia <= 31; dia++) {
-      linhas.push([(dia < 10 ? "0" : "") + dia, "", "", "", ""]);
+      for (var extra = 0; extra < linhasPorDia; extra++) {
+        linhas.push([extra === 0 ? (dia < 10 ? "0" : "") + dia : "", "", "", "", ""]);
+      }
     }
 
     var blob = gerarRelatorioPdf({

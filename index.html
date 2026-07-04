@@ -235,6 +235,14 @@
             <label for="folha-mes">Mês de referência</label>
             <input type="month" id="folha-mes" />
           </div>
+          <div class="campo">
+            <label for="folha-linhas">Linhas por dia</label>
+            <select id="folha-linhas">
+              <option value="1">1 linha — folha de 1 página</option>
+              <option value="2" selected>2 linhas — para mais de uma disciplina no dia</option>
+              <option value="3">3 linhas — dias bem cheios</option>
+            </select>
+          </div>
           <div class="campo campo-botao">
             <button type="button" class="btn btn-primario" id="btn-gerar-folha">🖨 Gerar folha em PDF</button>
           </div>
