@@ -4,13 +4,18 @@ Aplicativo web para registrar aulas ministradas por professores eventuais (subst
 
 ## Funcionalidades
 
-- **Registro de aulas** com os campos:
-  - Nome e CPF do professor eventual
-  - Data da aula
-  - Série / turma
-  - Disciplina
-  - Quantidade de aulas no dia
-  - Nome e CPF do professor substituído
+O app é organizado em quatro abas:
+
+- **Registrar aula** — tudo escolhido em listas: o professor eventual (do cadastro), a turma
+  (agrupada por período: manhã, tarde e noite), a disciplina, a quantidade de aulas (1 a 10)
+  e o professor substituído (do cadastro). Os CPFs são preenchidos automaticamente.
+- **Eventuais** — cadastro dos professores eventuais (nome e CPF).
+- **Professores** — cadastro dos professores com aula atribuída: nome, CPF, disciplina e
+  as turmas em que dão aula.
+- **Relatório** — relatório mensal por eventual, com prévia na tela e PDF.
+
+Outros recursos:
+
 - **Validação de CPF** (dígitos verificadores) com máscara automática `000.000.000-00`
 - **Lista de aulas registradas** com edição e exclusão
 - **Relatório mensal em PDF** por eventual, com todas as aulas do mês, o **total de aulas ministradas** e campos de assinatura (eventual e direção) para conferência

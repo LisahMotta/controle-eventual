@@ -7,6 +7,35 @@
   var MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
+  // Turmas da escola, por período
+  var TURMAS = [
+    {
+      periodo: "Manhã",
+      turmas: ["6º ano A", "7º ano A", "7º ano B", "8º ano A", "8º ano B",
+        "9º ano A", "9º ano B", "9º ano C",
+        "1º médio A", "1º médio B", "1º médio C", "2º médio A"]
+    },
+    {
+      periodo: "Tarde",
+      turmas: ["1º ano A", "1º ano B", "2º ano A", "2º ano B",
+        "3º ano A", "3º ano B", "4º ano A", "4º ano B",
+        "5º ano A", "5º ano B", "6º ano B"]
+    },
+    {
+      periodo: "Noite",
+      turmas: ["2º médio B", "2º médio C", "2º médio D",
+        "3º médio A", "3º médio B", "3º médio C"]
+    }
+  ];
+
+  var DISCIPLINAS = ["Classe", "Português", "Inglês", "Arte", "Educação Física",
+    "História", "Geografia", "Ciências", "Matemática",
+    "Orientação de Estudos – Língua Portuguesa",
+    "Orientação de Estudos – Matemática",
+    "Projeto de Vida", "Tecnologia", "Educação Financeira",
+    "Redação e Leitura", "Biologia", "Química", "Física",
+    "Sociologia", "Filosofia"];
+
   // ===================== Utilidades =====================
 
   function porId(id) {
@@ -50,6 +79,10 @@
     var div = document.createElement("div");
     div.textContent = texto == null ? "" : String(texto);
     return div.innerHTML;
+  }
+
+  function novoId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
   // ===================== Comunicação com o servidor =====================
@@ -101,10 +134,18 @@
   }
 
   var registros = [];
-  var idEmEdicao = null;
+  var eventuais = [];
+  var professores = [];
 
-  async function recarregarRegistros() {
-    registros = await requisicaoApi("GET", "/api/registros");
+  async function recarregarDados() {
+    var resultados = await Promise.all([
+      requisicaoApi("GET", "/api/registros"),
+      requisicaoApi("GET", "/api/eventuais"),
+      requisicaoApi("GET", "/api/professores")
+    ]);
+    registros = resultados[0];
+    eventuais = resultados[1];
+    professores = resultados[2];
     atualizarTudo();
   }
 
@@ -123,28 +164,114 @@
       "para ficarem acessíveis em qualquer dispositivo?");
     if (!enviar) return;
 
-    await requisicaoApi("POST", "/api/registros/importar",
+    await requisicaoApi("POST", "/api/importar",
       { registros: antigos, substituir: false });
     localStorage.removeItem(CHAVE_ANTIGA);
-    await recarregarRegistros();
+    await recarregarDados();
     alert("Dados enviados para o banco com sucesso.");
   }
 
-  // ===================== Formulário =====================
+  // ===================== Abas =====================
 
-  var form = porId("form-aula");
-  var campoCpfEventual = porId("cpf-eventual");
-  var campoCpfProfessor = porId("cpf-professor");
-
-  [campoCpfEventual, campoCpfProfessor].forEach(function (campo) {
-    campo.addEventListener("input", function () {
-      campo.value = formatarCpf(campo.value);
-      validarCampoCpf(campo);
+  porId("barra-abas").addEventListener("click", function (evento) {
+    var botao = evento.target.closest("button[data-aba]");
+    if (!botao) return;
+    document.querySelectorAll("#barra-abas .aba").forEach(function (aba) {
+      aba.classList.toggle("ativa", aba === botao);
+    });
+    document.querySelectorAll("main .painel").forEach(function (painel) {
+      painel.hidden = painel.id !== "aba-" + botao.dataset.aba;
     });
   });
 
-  function validarCampoCpf(campo) {
-    var spanErro = porId("erro-" + campo.id);
+  // ===================== Listas fixas (turmas, disciplinas, quantidade) =====================
+
+  function preencherSelectTurmas(select) {
+    TURMAS.forEach(function (grupo) {
+      var optgroup = document.createElement("optgroup");
+      optgroup.label = grupo.periodo;
+      grupo.turmas.forEach(function (turma) {
+        var opcao = document.createElement("option");
+        opcao.value = turma;
+        opcao.textContent = turma;
+        optgroup.appendChild(opcao);
+      });
+      select.appendChild(optgroup);
+    });
+  }
+
+  function preencherSelectDisciplinas(select) {
+    DISCIPLINAS.forEach(function (disciplina) {
+      var opcao = document.createElement("option");
+      opcao.value = disciplina;
+      opcao.textContent = disciplina;
+      select.appendChild(opcao);
+    });
+  }
+
+  preencherSelectTurmas(porId("serie"));
+  preencherSelectDisciplinas(porId("disciplina"));
+  preencherSelectDisciplinas(porId("disciplina-professor-cad"));
+
+  (function preencherQuantidade() {
+    var select = porId("qtd-aulas");
+    for (var i = 1; i <= 10; i++) {
+      var opcao = document.createElement("option");
+      opcao.value = String(i);
+      opcao.textContent = i + (i === 1 ? " aula" : " aulas");
+      select.appendChild(opcao);
+    }
+  })();
+
+  // Caixas de seleção de turmas no cadastro de professor
+  (function montarTurmasProfessor() {
+    var recipiente = porId("turmas-professor");
+    TURMAS.forEach(function (grupo) {
+      var bloco = document.createElement("fieldset");
+      bloco.className = "grupo-turmas";
+      var titulo = document.createElement("legend");
+      titulo.textContent = grupo.periodo;
+      bloco.appendChild(titulo);
+      grupo.turmas.forEach(function (turma) {
+        var rotulo = document.createElement("label");
+        rotulo.className = "opcao-turma";
+        var caixa = document.createElement("input");
+        caixa.type = "checkbox";
+        caixa.value = turma;
+        caixa.name = "turma-professor";
+        rotulo.appendChild(caixa);
+        rotulo.appendChild(document.createTextNode(" " + turma));
+        bloco.appendChild(rotulo);
+      });
+      recipiente.appendChild(bloco);
+    });
+  })();
+
+  function turmasSelecionadas() {
+    return Array.prototype.slice
+      .call(document.querySelectorAll('input[name="turma-professor"]:checked'))
+      .map(function (caixa) { return caixa.value; });
+  }
+
+  function marcarTurmas(series) {
+    var conjunto = {};
+    (series || []).forEach(function (s) { conjunto[s] = true; });
+    document.querySelectorAll('input[name="turma-professor"]').forEach(function (caixa) {
+      caixa.checked = !!conjunto[caixa.value];
+    });
+  }
+
+  // ===================== Máscara de CPF nos cadastros =====================
+
+  function ligarMascaraCpf(campo, idErro) {
+    campo.addEventListener("input", function () {
+      campo.value = formatarCpf(campo.value);
+      validarCampoCpf(campo, idErro);
+    });
+  }
+
+  function validarCampoCpf(campo, idErro) {
+    var spanErro = porId(idErro);
     var digitos = somenteDigitos(campo.value);
     if (digitos.length === 11 && !cpfValido(campo.value)) {
       campo.classList.add("invalido");
@@ -156,41 +283,297 @@
     return digitos.length === 11;
   }
 
-  function limparFormulario() {
-    form.reset();
+  function exigirCpf(campo, idErro) {
+    if (!validarCampoCpf(campo, idErro)) {
+      porId(idErro).textContent = "Informe um CPF válido (11 dígitos).";
+      campo.classList.add("invalido");
+      return false;
+    }
+    return true;
+  }
+
+  // ===================== Aba Eventuais =====================
+
+  var formEventual = porId("form-eventual");
+  var campoCpfEventualCad = porId("cpf-eventual-cad");
+  var idEventualEmEdicao = null;
+  ligarMascaraCpf(campoCpfEventualCad, "erro-cpf-eventual-cad");
+
+  formEventual.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+    if (!exigirCpf(campoCpfEventualCad, "erro-cpf-eventual-cad")) return;
+
+    var eventual = {
+      id: idEventualEmEdicao || novoId(),
+      nome: porId("nome-eventual-cad").value.trim(),
+      cpf: formatarCpf(campoCpfEventualCad.value)
+    };
+
+    var botao = porId("btn-salvar-eventual");
+    botao.disabled = true;
+    try {
+      await requisicaoApi("POST", "/api/eventuais", eventual);
+      encerrarEdicaoEventual();
+      formEventual.reset();
+      await recarregarDados();
+    } catch (erro) {
+      alert("Não foi possível salvar: " + erro.message);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  porId("btn-cancelar-eventual").addEventListener("click", function () {
+    encerrarEdicaoEventual();
+    formEventual.reset();
+  });
+
+  function encerrarEdicaoEventual() {
+    idEventualEmEdicao = null;
+    porId("btn-salvar-eventual").textContent = "Cadastrar eventual";
+    porId("btn-cancelar-eventual").hidden = true;
+  }
+
+  function atualizarTabelaEventuais() {
+    var corpo = porId("tabela-eventuais").querySelector("tbody");
+    corpo.innerHTML = "";
+    eventuais.forEach(function (e) {
+      var linha = document.createElement("tr");
+      linha.innerHTML =
+        "<td>" + escapeHtml(e.nome) + "</td>" +
+        "<td>" + escapeHtml(e.cpf) + "</td>" +
+        "<td>" +
+        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + e.id + '">✏️</button>' +
+        '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + e.id + '">🗑️</button>' +
+        "</td>";
+      corpo.appendChild(linha);
+    });
+    porId("msg-sem-eventuais").hidden = eventuais.length > 0;
+  }
+
+  porId("tabela-eventuais").addEventListener("click", async function (evento) {
+    var botao = evento.target.closest("button[data-acao]");
+    if (!botao) return;
+    var eventual = eventuais.find(function (e) { return e.id === botao.dataset.id; });
+    if (!eventual) return;
+
+    if (botao.dataset.acao === "editar") {
+      idEventualEmEdicao = eventual.id;
+      porId("nome-eventual-cad").value = eventual.nome;
+      campoCpfEventualCad.value = eventual.cpf;
+      porId("btn-salvar-eventual").textContent = "Atualizar eventual";
+      porId("btn-cancelar-eventual").hidden = false;
+      porId("nome-eventual-cad").focus();
+    } else if (botao.dataset.acao === "excluir") {
+      if (!confirm("Excluir o eventual " + eventual.nome + "?\n\n" +
+        "As aulas já registradas dele não serão apagadas.")) return;
+      try {
+        await requisicaoApi("DELETE", "/api/eventuais/" + eventual.id);
+        if (idEventualEmEdicao === eventual.id) encerrarEdicaoEventual();
+        await recarregarDados();
+      } catch (erro) {
+        alert("Não foi possível excluir: " + erro.message);
+      }
+    }
+  });
+
+  // ===================== Aba Professores =====================
+
+  var formProfessor = porId("form-professor");
+  var campoCpfProfessorCad = porId("cpf-professor-cad");
+  var idProfessorEmEdicao = null;
+  ligarMascaraCpf(campoCpfProfessorCad, "erro-cpf-professor-cad");
+
+  formProfessor.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+    if (!exigirCpf(campoCpfProfessorCad, "erro-cpf-professor-cad")) return;
+
+    var professor = {
+      id: idProfessorEmEdicao || novoId(),
+      nome: porId("nome-professor-cad").value.trim(),
+      cpf: formatarCpf(campoCpfProfessorCad.value),
+      disciplina: porId("disciplina-professor-cad").value,
+      series: turmasSelecionadas()
+    };
+
+    var botao = porId("btn-salvar-professor");
+    botao.disabled = true;
+    try {
+      await requisicaoApi("POST", "/api/professores", professor);
+      encerrarEdicaoProfessor();
+      formProfessor.reset();
+      marcarTurmas([]);
+      await recarregarDados();
+    } catch (erro) {
+      alert("Não foi possível salvar: " + erro.message);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  porId("btn-cancelar-professor").addEventListener("click", function () {
+    encerrarEdicaoProfessor();
+    formProfessor.reset();
+    marcarTurmas([]);
+  });
+
+  function encerrarEdicaoProfessor() {
+    idProfessorEmEdicao = null;
+    porId("btn-salvar-professor").textContent = "Cadastrar professor";
+    porId("btn-cancelar-professor").hidden = true;
+  }
+
+  function atualizarTabelaProfessores() {
+    var corpo = porId("tabela-professores").querySelector("tbody");
+    corpo.innerHTML = "";
+    professores.forEach(function (p) {
+      var linha = document.createElement("tr");
+      linha.innerHTML =
+        "<td>" + escapeHtml(p.nome) + "</td>" +
+        "<td>" + escapeHtml(p.cpf) + "</td>" +
+        "<td>" + escapeHtml(p.disciplina) + "</td>" +
+        '<td class="celula-turmas">' + escapeHtml((p.series || []).join(", ")) + "</td>" +
+        "<td>" +
+        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + p.id + '">✏️</button>' +
+        '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + p.id + '">🗑️</button>' +
+        "</td>";
+      corpo.appendChild(linha);
+    });
+    porId("msg-sem-professores").hidden = professores.length > 0;
+  }
+
+  porId("tabela-professores").addEventListener("click", async function (evento) {
+    var botao = evento.target.closest("button[data-acao]");
+    if (!botao) return;
+    var professor = professores.find(function (p) { return p.id === botao.dataset.id; });
+    if (!professor) return;
+
+    if (botao.dataset.acao === "editar") {
+      idProfessorEmEdicao = professor.id;
+      porId("nome-professor-cad").value = professor.nome;
+      campoCpfProfessorCad.value = professor.cpf;
+      porId("disciplina-professor-cad").value = professor.disciplina;
+      marcarTurmas(professor.series);
+      porId("btn-salvar-professor").textContent = "Atualizar professor";
+      porId("btn-cancelar-professor").hidden = false;
+      porId("nome-professor-cad").focus();
+    } else if (botao.dataset.acao === "excluir") {
+      if (!confirm("Excluir o professor " + professor.nome + "?\n\n" +
+        "As aulas já registradas não serão apagadas.")) return;
+      try {
+        await requisicaoApi("DELETE", "/api/professores/" + professor.id);
+        if (idProfessorEmEdicao === professor.id) encerrarEdicaoProfessor();
+        await recarregarDados();
+      } catch (erro) {
+        alert("Não foi possível excluir: " + erro.message);
+      }
+    }
+  });
+
+  // ===================== Aba Registrar aula =====================
+
+  var formAula = porId("form-aula");
+  var idEmEdicao = null;
+
+  function atualizarSelectEventuais() {
+    var select = porId("sel-eventual");
+    var valorAtual = select.value;
+    select.innerHTML = '<option value="">— Selecione o eventual —</option>';
+    eventuais.forEach(function (e) {
+      var opcao = document.createElement("option");
+      opcao.value = e.id;
+      opcao.textContent = e.nome + " — " + e.cpf;
+      select.appendChild(opcao);
+    });
+    if (valorAtual && eventuais.some(function (e) { return e.id === valorAtual; })) {
+      select.value = valorAtual;
+    }
+    porId("dica-sem-eventuais").hidden = eventuais.length > 0;
+    atualizarCpfEventual();
+  }
+
+  function atualizarSelectProfessores() {
+    var select = porId("sel-professor");
+    var valorAtual = select.value;
+    select.innerHTML = '<option value="">— Selecione o professor —</option>';
+    professores.forEach(function (p) {
+      var opcao = document.createElement("option");
+      opcao.value = p.id;
+      opcao.textContent = p.nome + " — " + p.disciplina;
+      select.appendChild(opcao);
+    });
+    if (valorAtual && professores.some(function (p) { return p.id === valorAtual; })) {
+      select.value = valorAtual;
+    }
+    porId("dica-sem-professores").hidden = professores.length > 0;
+    atualizarCpfProfessor();
+  }
+
+  function eventualSelecionado() {
+    var id = porId("sel-eventual").value;
+    return eventuais.find(function (e) { return e.id === id; }) || null;
+  }
+
+  function professorSelecionado() {
+    var id = porId("sel-professor").value;
+    return professores.find(function (p) { return p.id === id; }) || null;
+  }
+
+  function atualizarCpfEventual() {
+    var eventual = eventualSelecionado();
+    porId("cpf-eventual-exibicao").value = eventual ? eventual.cpf : "";
+  }
+
+  function atualizarCpfProfessor() {
+    var professor = professorSelecionado();
+    porId("cpf-professor-exibicao").value = professor ? professor.cpf : "";
+  }
+
+  porId("sel-eventual").addEventListener("change", atualizarCpfEventual);
+  porId("sel-professor").addEventListener("change", function () {
+    atualizarCpfProfessor();
+    // sugestão: ao escolher o professor, pré-seleciona a disciplina dele
+    var professor = professorSelecionado();
+    if (professor && !idEmEdicao && DISCIPLINAS.indexOf(professor.disciplina) >= 0) {
+      porId("disciplina").value = professor.disciplina;
+    }
+  });
+
+  function limparFormularioAula() {
+    formAula.reset();
     porId("data-aula").value = new Date().toISOString().slice(0, 10);
-    porId("qtd-aulas").value = 1;
+    atualizarCpfEventual();
+    atualizarCpfProfessor();
   }
 
   // Data padrão: hoje
   porId("data-aula").value = new Date().toISOString().slice(0, 10);
   porId("filtro-mes").value = new Date().toISOString().slice(0, 7);
 
-  form.addEventListener("submit", async function (evento) {
+  formAula.addEventListener("submit", async function (evento) {
     evento.preventDefault();
 
-    var cpfEventualOk = validarCampoCpf(campoCpfEventual);
-    var cpfProfessorOk = validarCampoCpf(campoCpfProfessor);
-    if (!cpfEventualOk) {
-      porId("erro-cpf-eventual").textContent = "Informe um CPF válido (11 dígitos).";
-      campoCpfEventual.classList.add("invalido");
+    var eventual = eventualSelecionado();
+    var professor = professorSelecionado();
+    if (!eventual) {
+      alert("Selecione o professor eventual. Se a lista estiver vazia, cadastre na aba Eventuais.");
+      return;
     }
-    if (!cpfProfessorOk) {
-      porId("erro-cpf-professor").textContent = "Informe um CPF válido (11 dígitos).";
-      campoCpfProfessor.classList.add("invalido");
+    if (!professor) {
+      alert("Selecione o professor substituído. Se a lista estiver vazia, cadastre na aba Professores.");
+      return;
     }
-    if (!cpfEventualOk || !cpfProfessorOk) return;
 
     var registro = {
-      id: idEmEdicao || (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
-      nomeEventual: porId("nome-eventual").value.trim(),
-      cpfEventual: formatarCpf(campoCpfEventual.value),
+      id: idEmEdicao || novoId(),
+      nomeEventual: eventual.nome,
+      cpfEventual: eventual.cpf,
       data: porId("data-aula").value,
-      serie: porId("serie").value.trim(),
-      disciplina: porId("disciplina").value.trim(),
-      qtdAulas: Math.max(1, parseInt(porId("qtd-aulas").value, 10) || 1),
-      nomeProfessor: porId("nome-professor").value.trim(),
-      cpfProfessor: formatarCpf(campoCpfProfessor.value)
+      serie: porId("serie").value,
+      disciplina: porId("disciplina").value,
+      qtdAulas: parseInt(porId("qtd-aulas").value, 10) || 1,
+      nomeProfessor: professor.nome,
+      cpfProfessor: professor.cpf
     };
 
     var botao = porId("btn-salvar");
@@ -198,9 +581,8 @@
     try {
       await requisicaoApi("POST", "/api/registros", registro);
       if (idEmEdicao) encerrarEdicao();
-      limparFormulario();
-      await recarregarRegistros();
-      porId("nome-eventual").focus();
+      limparFormularioAula();
+      await recarregarDados();
     } catch (erro) {
       alert("Não foi possível salvar: " + erro.message);
     } finally {
@@ -210,19 +592,59 @@
 
   porId("btn-cancelar-edicao").addEventListener("click", function () {
     encerrarEdicao();
-    limparFormulario();
+    limparFormularioAula();
   });
+
+  function garantirOpcao(select, valor, rotulo) {
+    // usada ao editar registros antigos cujo eventual/professor/turma
+    // não está mais no cadastro: cria uma opção temporária
+    var existe = Array.prototype.some.call(select.options, function (opcao) {
+      return opcao.value === valor;
+    });
+    if (!existe && valor) {
+      var opcao = document.createElement("option");
+      opcao.value = valor;
+      opcao.textContent = rotulo || valor;
+      select.appendChild(opcao);
+    }
+    select.value = valor;
+  }
 
   function iniciarEdicao(registro) {
     idEmEdicao = registro.id;
-    porId("nome-eventual").value = registro.nomeEventual;
-    campoCpfEventual.value = registro.cpfEventual;
+
+    var eventual = eventuais.find(function (e) { return e.cpf === registro.cpfEventual; });
+    var professor = professores.find(function (p) { return p.cpf === registro.cpfProfessor; });
+
+    if (eventual) {
+      porId("sel-eventual").value = eventual.id;
+    } else {
+      // registro antigo sem cadastro correspondente: cria opção temporária
+      var idTemporario = "antigo:" + registro.cpfEventual;
+      eventuais.push({ id: idTemporario, nome: registro.nomeEventual, cpf: registro.cpfEventual });
+      atualizarSelectEventuais();
+      porId("sel-eventual").value = idTemporario;
+    }
+    atualizarCpfEventual();
+
+    if (professor) {
+      porId("sel-professor").value = professor.id;
+    } else {
+      var idTempProf = "antigo:" + registro.cpfProfessor;
+      professores.push({
+        id: idTempProf, nome: registro.nomeProfessor,
+        cpf: registro.cpfProfessor, disciplina: registro.disciplina, series: []
+      });
+      atualizarSelectProfessores();
+      porId("sel-professor").value = idTempProf;
+    }
+    atualizarCpfProfessor();
+
     porId("data-aula").value = registro.data;
-    porId("serie").value = registro.serie;
-    porId("disciplina").value = registro.disciplina;
-    porId("qtd-aulas").value = registro.qtdAulas;
-    porId("nome-professor").value = registro.nomeProfessor;
-    campoCpfProfessor.value = registro.cpfProfessor;
+    garantirOpcao(porId("serie"), registro.serie);
+    garantirOpcao(porId("disciplina"), registro.disciplina);
+    porId("qtd-aulas").value = String(Math.min(10, Math.max(1, registro.qtdAulas)));
+
     porId("btn-salvar").textContent = "Atualizar registro";
     porId("btn-cancelar-edicao").hidden = false;
     porId("secao-cadastro").scrollIntoView({ behavior: "smooth" });
@@ -280,21 +702,23 @@
       try {
         await requisicaoApi("DELETE", "/api/registros/" + registro.id);
         if (idEmEdicao === registro.id) encerrarEdicao();
-        await recarregarRegistros();
+        await recarregarDados();
       } catch (erro) {
         alert("Não foi possível excluir: " + erro.message);
       }
     }
   });
 
-  // ===================== Filtro do relatório =====================
+  // ===================== Relatório =====================
 
   function atualizarFiltroEventuais() {
     var seletor = porId("filtro-eventual");
     var valorAtual = seletor.value;
     seletor.innerHTML = '<option value="">— Selecione o eventual —</option>';
 
+    // Eventuais cadastrados + os que aparecem em registros antigos
     var vistos = {};
+    eventuais.forEach(function (e) { vistos[e.cpf] = e.nome; });
     registros.forEach(function (r) {
       if (!vistos[r.cpfEventual]) vistos[r.cpfEventual] = r.nomeEventual;
     });
@@ -309,18 +733,6 @@
       });
 
     if (valorAtual && vistos[valorAtual]) seletor.value = valorAtual;
-  }
-
-  function atualizarSugestoesSeries() {
-    var lista = porId("lista-series");
-    lista.innerHTML = "";
-    var vistas = {};
-    registros.forEach(function (r) { vistas[r.serie] = true; });
-    Object.keys(vistas).sort().forEach(function (serie) {
-      var opcao = document.createElement("option");
-      opcao.value = serie;
-      lista.appendChild(opcao);
-    });
   }
 
   function filtrarAulasDoMes(cpf, mes) {
@@ -340,6 +752,12 @@
     return aulas.reduce(function (soma, r) { return soma + (r.qtdAulas || 1); }, 0);
   }
 
+  function nomeDoEventualPorCpf(cpf, aulas) {
+    var cadastrado = eventuais.find(function (e) { return e.cpf === cpf; });
+    if (cadastrado) return cadastrado.nome;
+    return aulas.length ? aulas[0].nomeEventual : "";
+  }
+
   function atualizarPrevia() {
     var cpf = porId("filtro-eventual").value;
     var mes = porId("filtro-mes").value;
@@ -357,7 +775,7 @@
     }
 
     porId("titulo-previa").textContent =
-      "Aulas de " + aulas[0].nomeEventual + " em " + nomeDoMes(mes);
+      "Aulas de " + nomeDoEventualPorCpf(cpf, aulas) + " em " + nomeDoMes(mes);
 
     var corpo = porId("tabela-relatorio").querySelector("tbody");
     corpo.innerHTML = "";
@@ -402,7 +820,7 @@
       return;
     }
 
-    var nomeEventual = aulas[0].nomeEventual;
+    var nomeEventual = nomeDoEventualPorCpf(cpf, aulas);
     var blob = gerarRelatorioPdf({
       titulo: "Relatório Mensal de Aulas Eventuais",
       subtitulo: "Referência: " + nomeDoMes(mes),
@@ -413,7 +831,7 @@
       ],
       colunas: [
         { titulo: "Data", largura: 60 },
-        { titulo: "Série/Turma", largura: 85 },
+        { titulo: "Turma", largura: 85 },
         { titulo: "Disciplina", largura: 105 },
         { titulo: "Aulas", largura: 40 },
         { titulo: "Professor substituído", largura: 130 },
@@ -445,7 +863,13 @@
   // ===================== Exportar / importar =====================
 
   porId("btn-exportar").addEventListener("click", function () {
-    var blob = new Blob([JSON.stringify(registros, null, 2)],
+    var dados = {
+      versao: 2,
+      registros: registros,
+      eventuais: eventuais.filter(function (e) { return String(e.id).indexOf("antigo:") !== 0; }),
+      professores: professores.filter(function (p) { return String(p.id).indexOf("antigo:") !== 0; })
+    };
+    var blob = new Blob([JSON.stringify(dados, null, 2)],
       { type: "application/json" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -468,16 +892,23 @@
     leitor.onload = async function () {
       try {
         var dados = JSON.parse(leitor.result);
-        if (!Array.isArray(dados) || !dados.length) throw new Error("o arquivo não é uma exportação válida deste app.");
+        var corpo;
+        if (Array.isArray(dados)) {
+          corpo = { registros: dados }; // formato antigo
+        } else if (dados && typeof dados === "object") {
+          corpo = dados;
+        } else {
+          throw new Error("o arquivo não é uma exportação válida deste app.");
+        }
 
         var substituir = confirm(
-          "Importar " + dados.length + " registro(s)?\n\n" +
+          "Importar os dados do arquivo?\n\n" +
           "OK = substituir os dados atuais\n" +
           "Cancelar = adicionar aos dados existentes");
-        var resultado = await requisicaoApi("POST", "/api/registros/importar",
-          { registros: dados, substituir: substituir });
-        await recarregarRegistros();
-        alert(resultado.importados + " registro(s) importado(s) com sucesso.");
+        corpo.substituir = substituir;
+        var resultado = await requisicaoApi("POST", "/api/importar", corpo);
+        await recarregarDados();
+        alert(resultado.importados + " item(ns) importado(s) com sucesso.");
       } catch (erro) {
         alert("Não foi possível importar: " + erro.message);
       }
@@ -490,14 +921,17 @@
 
   function atualizarTudo() {
     atualizarTabela();
+    atualizarTabelaEventuais();
+    atualizarTabelaProfessores();
+    atualizarSelectEventuais();
+    atualizarSelectProfessores();
     atualizarFiltroEventuais();
-    atualizarSugestoesSeries();
     atualizarPrevia();
   }
 
   (async function iniciar() {
     try {
-      await recarregarRegistros();
+      await recarregarDados();
       await migrarDadosAntigos();
     } catch (erro) {
       alert(erro.message);

@@ -36,13 +36,94 @@ body {
   font-size: 0.95rem;
 }
 
+.abas {
+  background: var(--primaria-escura);
+  padding: 0 1rem;
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+}
+
+.aba {
+  border: none;
+  background: transparent;
+  color: #cfe0f2;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.1rem;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.aba:hover {
+  color: #fff;
+}
+
+.aba.ativa {
+  color: #fff;
+  border-bottom-color: #fff;
+}
+
 main {
   max-width: 1080px;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
+}
+
+.painel {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.painel[hidden] {
+  display: none;
+}
+
+.dica {
+  font-size: 0.8rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 5px;
+  padding: 0.3rem 0.5rem;
+}
+
+.grupos-turmas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.grupo-turmas {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem 0.8rem;
+  margin: 0;
+}
+
+.grupo-turmas legend {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primaria-escura);
+  padding: 0 0.3rem;
+}
+
+.opcao-turma {
+  display: block;
+  font-size: 0.9rem;
+  padding: 0.18rem 0;
+  cursor: pointer;
+}
+
+.campo-turmas {
+  margin-top: 1rem;
+}
+
+.celula-turmas {
+  white-space: normal;
+  max-width: 320px;
 }
 
 .cartao {

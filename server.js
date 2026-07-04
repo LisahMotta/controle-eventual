@@ -1,12 +1,12 @@
 /*
  * Servidor do Controle de Aula Eventual.
  *
- * Serve os arquivos do app e expõe a API de registros:
- *   GET    /api/registros            lista todos os registros
- *   POST   /api/registros            cria ou atualiza um registro
- *   DELETE /api/registros/:id        exclui um registro
- *   POST   /api/registros/importar   importa vários registros (backup)
- *   GET    /api/sessao               confere o código de acesso
+ * Serve os arquivos do app e expõe a API:
+ *   GET    /api/registros | /api/eventuais | /api/professores
+ *   POST   /api/registros | /api/eventuais | /api/professores
+ *   DELETE /api/registros/:id | /api/eventuais/:id | /api/professores/:id
+ *   POST   /api/importar          importa uma cópia de segurança
+ *   GET    /api/sessao            confere o código de acesso
  *
  * Com a variável APP_SENHA definida, a API exige o código de acesso no
  * cabeçalho X-Codigo-Acesso (o app pede o código na primeira visita).
@@ -61,24 +61,68 @@ function autorizado(requisicao) {
   return requisicao.headers["x-codigo-acesso"] === SENHA;
 }
 
+// ===================== Validação =====================
+
+function texto(v, max) {
+  return String(v == null ? "" : v).trim().slice(0, max || 200);
+}
+
+function novoId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
 function validarRegistro(r) {
   if (!r || typeof r !== "object") return null;
-  const texto = v => String(v == null ? "" : v).trim().slice(0, 200);
   const registro = {
-    id: texto(r.id) || (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
+    id: texto(r.id) || novoId(),
     nomeEventual: texto(r.nomeEventual),
-    cpfEventual: texto(r.cpfEventual),
-    data: texto(r.data),
-    serie: texto(r.serie),
-    disciplina: texto(r.disciplina),
-    qtdAulas: Math.min(20, Math.max(1, parseInt(r.qtdAulas, 10) || 1)),
+    cpfEventual: texto(r.cpfEventual, 20),
+    data: texto(r.data, 10),
+    serie: texto(r.serie, 60),
+    disciplina: texto(r.disciplina, 80),
+    qtdAulas: Math.min(10, Math.max(1, parseInt(r.qtdAulas, 10) || 1)),
     nomeProfessor: texto(r.nomeProfessor),
-    cpfProfessor: texto(r.cpfProfessor)
+    cpfProfessor: texto(r.cpfProfessor, 20)
   };
   if (!registro.nomeEventual || !registro.cpfEventual ||
       !/^\d{4}-\d{2}-\d{2}$/.test(registro.data)) return null;
   return registro;
 }
+
+function validarEventual(e) {
+  if (!e || typeof e !== "object") return null;
+  const eventual = {
+    id: texto(e.id) || novoId(),
+    nome: texto(e.nome),
+    cpf: texto(e.cpf, 20)
+  };
+  if (!eventual.nome || !eventual.cpf) return null;
+  return eventual;
+}
+
+function validarProfessor(p) {
+  if (!p || typeof p !== "object") return null;
+  const series = Array.isArray(p.series)
+    ? p.series.map(s => texto(s, 60)).filter(Boolean).slice(0, 60)
+    : [];
+  const professor = {
+    id: texto(p.id) || novoId(),
+    nome: texto(p.nome),
+    cpf: texto(p.cpf, 20),
+    disciplina: texto(p.disciplina, 80),
+    series: series
+  };
+  if (!professor.nome || !professor.cpf || !professor.disciplina) return null;
+  return professor;
+}
+
+const VALIDADORES = {
+  registros: validarRegistro,
+  eventuais: validarEventual,
+  professores: validarProfessor
+};
+
+// ===================== API =====================
 
 async function tratarApi(requisicao, resposta, caminho) {
   if (!autorizado(requisicao)) {
@@ -89,37 +133,55 @@ async function tratarApi(requisicao, resposta, caminho) {
     return responderJson(resposta, 200, { ok: true, armazenamento: armazenamento.tipo });
   }
 
-  if (caminho === "/api/registros" && requisicao.method === "GET") {
-    return responderJson(resposta, 200, await armazenamento.listar());
-  }
-
-  if (caminho === "/api/registros" && requisicao.method === "POST") {
-    const registro = validarRegistro(await lerCorpo(requisicao));
-    if (!registro) return responderJson(resposta, 400, { erro: "Registro inválido." });
-    await armazenamento.salvar(registro);
-    return responderJson(resposta, 200, registro);
-  }
-
-  const excluir = caminho.match(/^\/api\/registros\/([\w-]+)$/);
-  if (excluir && requisicao.method === "DELETE") {
-    const encontrou = await armazenamento.excluir(excluir[1]);
-    return responderJson(resposta, encontrou ? 200 : 404,
-      encontrou ? { ok: true } : { erro: "Registro não encontrado." });
-  }
-
-  if (caminho === "/api/registros/importar" && requisicao.method === "POST") {
+  // Importação de cópia de segurança: aceita o formato novo
+  // { registros, eventuais, professores } e o antigo (lista de registros).
+  if ((caminho === "/api/importar" || caminho === "/api/registros/importar") &&
+      requisicao.method === "POST") {
     const corpo = await lerCorpo(requisicao);
-    const lista = Array.isArray(corpo.registros) ? corpo.registros : [];
-    const validos = lista.map(validarRegistro).filter(Boolean);
-    if (!validos.length) {
-      return responderJson(resposta, 400, { erro: "Nenhum registro válido no arquivo." });
+    const brutos = Array.isArray(corpo.registros) && !corpo.eventuais && !corpo.professores
+      ? { registros: corpo.registros }
+      : corpo;
+    const dados = {};
+    let totalImportados = 0;
+    for (const nome of Object.keys(VALIDADORES)) {
+      const lista = Array.isArray(brutos[nome]) ? brutos[nome] : [];
+      dados[nome] = lista.map(VALIDADORES[nome]).filter(Boolean);
+      totalImportados += dados[nome].length;
     }
-    await armazenamento.importar(validos, corpo.substituir === true);
-    return responderJson(resposta, 200, { ok: true, importados: validos.length });
+    if (!totalImportados) {
+      return responderJson(resposta, 400, { erro: "Nenhum dado válido no arquivo." });
+    }
+    await armazenamento.importar(dados, corpo.substituir === true);
+    return responderJson(resposta, 200, { ok: true, importados: totalImportados });
+  }
+
+  const partes = caminho.match(/^\/api\/(registros|eventuais|professores)(?:\/([\w-]+))?$/);
+  if (partes) {
+    const colecao = partes[1];
+    const id = partes[2];
+
+    if (!id && requisicao.method === "GET") {
+      return responderJson(resposta, 200, await armazenamento.listar(colecao));
+    }
+
+    if (!id && requisicao.method === "POST") {
+      const item = VALIDADORES[colecao](await lerCorpo(requisicao));
+      if (!item) return responderJson(resposta, 400, { erro: "Dados incompletos ou inválidos." });
+      await armazenamento.salvar(colecao, item);
+      return responderJson(resposta, 200, item);
+    }
+
+    if (id && requisicao.method === "DELETE") {
+      const encontrou = await armazenamento.excluir(colecao, id);
+      return responderJson(resposta, encontrou ? 200 : 404,
+        encontrou ? { ok: true } : { erro: "Item não encontrado." });
+    }
   }
 
   responderJson(resposta, 404, { erro: "Rota não encontrada." });
 }
+
+// ===================== Arquivos estáticos =====================
 
 function servirArquivo(resposta, caminho) {
   if (caminho === "/") caminho = "/index.html";

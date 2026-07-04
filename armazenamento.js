@@ -1,15 +1,96 @@
 /*
- * Camada de armazenamento dos registros de aula.
+ * Camada de armazenamento: registros de aula, eventuais e professores.
  *
  * - Com a variável de ambiente DATABASE_URL definida (Railway/PostgreSQL),
  *   os dados vão para o banco — acessíveis de qualquer dispositivo.
- * - Sem DATABASE_URL, os dados ficam em um arquivo JSON local
+ * - Sem DATABASE_URL, os dados ficam em arquivos JSON locais
  *   (útil para testes e uso em um único computador).
  */
 const fs = require("fs");
 const path = require("path");
 
 const URL_BANCO = process.env.DATABASE_URL;
+
+// Descrição das coleções: colunas no banco <-> campos usados pelo app
+const COLECOES = {
+  registros: {
+    tabela: "registros",
+    campos: [
+      ["id", "id"],
+      ["nome_eventual", "nomeEventual"],
+      ["cpf_eventual", "cpfEventual"],
+      ["data", "data"],
+      ["serie", "serie"],
+      ["disciplina", "disciplina"],
+      ["qtd_aulas", "qtdAulas"],
+      ["nome_professor", "nomeProfessor"],
+      ["cpf_professor", "cpfProfessor"]
+    ],
+    criacao: `CREATE TABLE IF NOT EXISTS registros (
+      id TEXT PRIMARY KEY,
+      nome_eventual TEXT NOT NULL,
+      cpf_eventual TEXT NOT NULL,
+      data TEXT NOT NULL,
+      serie TEXT NOT NULL,
+      disciplina TEXT NOT NULL,
+      qtd_aulas INTEGER NOT NULL DEFAULT 1,
+      nome_professor TEXT NOT NULL,
+      cpf_professor TEXT NOT NULL
+    )`,
+    ordem: "data"
+  },
+  eventuais: {
+    tabela: "eventuais",
+    campos: [
+      ["id", "id"],
+      ["nome", "nome"],
+      ["cpf", "cpf"]
+    ],
+    criacao: `CREATE TABLE IF NOT EXISTS eventuais (
+      id TEXT PRIMARY KEY,
+      nome TEXT NOT NULL,
+      cpf TEXT NOT NULL
+    )`,
+    ordem: "nome"
+  },
+  professores: {
+    tabela: "professores",
+    campos: [
+      ["id", "id"],
+      ["nome", "nome"],
+      ["cpf", "cpf"],
+      ["disciplina", "disciplina"],
+      ["series", "series"] // lista de turmas, gravada como JSON
+    ],
+    criacao: `CREATE TABLE IF NOT EXISTS professores (
+      id TEXT PRIMARY KEY,
+      nome TEXT NOT NULL,
+      cpf TEXT NOT NULL,
+      disciplina TEXT NOT NULL,
+      series TEXT NOT NULL DEFAULT '[]'
+    )`,
+    ordem: "nome"
+  }
+};
+
+function codificarCampo(nomeColecao, campoApp, valor) {
+  if (nomeColecao === "professores" && campoApp === "series") {
+    return JSON.stringify(Array.isArray(valor) ? valor : []);
+  }
+  return valor;
+}
+
+function decodificarCampo(nomeColecao, campoApp, valor) {
+  if (nomeColecao === "professores" && campoApp === "series") {
+    try {
+      const lista = JSON.parse(valor);
+      return Array.isArray(lista) ? lista : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  return valor;
+}
 
 // ===================== PostgreSQL =====================
 
@@ -20,78 +101,71 @@ function criarArmazenamentoPostgres() {
     ssl: /localhost|127\.0\.0\.1/.test(URL_BANCO) ? false : { rejectUnauthorized: false }
   });
 
-  const pronto = pool.query(`
-    CREATE TABLE IF NOT EXISTS registros (
-      id TEXT PRIMARY KEY,
-      nome_eventual TEXT NOT NULL,
-      cpf_eventual TEXT NOT NULL,
-      data TEXT NOT NULL,
-      serie TEXT NOT NULL,
-      disciplina TEXT NOT NULL,
-      qtd_aulas INTEGER NOT NULL DEFAULT 1,
-      nome_professor TEXT NOT NULL,
-      cpf_professor TEXT NOT NULL
-    )`);
+  const pronto = (async () => {
+    for (const nome of Object.keys(COLECOES)) {
+      await pool.query(COLECOES[nome].criacao);
+    }
+  })();
 
-  function paraApp(linha) {
-    return {
-      id: linha.id,
-      nomeEventual: linha.nome_eventual,
-      cpfEventual: linha.cpf_eventual,
-      data: linha.data,
-      serie: linha.serie,
-      disciplina: linha.disciplina,
-      qtdAulas: linha.qtd_aulas,
-      nomeProfessor: linha.nome_professor,
-      cpfProfessor: linha.cpf_professor
-    };
+  function paraApp(nome, linha) {
+    const item = {};
+    for (const [coluna, campo] of COLECOES[nome].campos) {
+      item[campo] = decodificarCampo(nome, campo, linha[coluna]);
+    }
+    return item;
+  }
+
+  function comandoUpsert(nome) {
+    const def = COLECOES[nome];
+    const colunas = def.campos.map(c => c[0]);
+    const posicoes = colunas.map((c, i) => "$" + (i + 1));
+    const atualizacoes = colunas.slice(1).map((c, i) => c + " = $" + (i + 2));
+    return `INSERT INTO ${def.tabela} (${colunas.join(", ")})
+            VALUES (${posicoes.join(", ")})
+            ON CONFLICT (id) DO UPDATE SET ${atualizacoes.join(", ")}`;
+  }
+
+  function valores(nome, item) {
+    return COLECOES[nome].campos.map(([coluna, campo]) =>
+      codificarCampo(nome, campo, item[campo]));
   }
 
   return {
     tipo: "postgres",
 
-    async listar() {
+    async listar(nome) {
       await pronto;
-      const resultado = await pool.query("SELECT * FROM registros ORDER BY data");
-      return resultado.rows.map(paraApp);
+      const def = COLECOES[nome];
+      const resultado = await pool.query(
+        `SELECT * FROM ${def.tabela} ORDER BY ${def.ordem}`);
+      return resultado.rows.map(linha => paraApp(nome, linha));
     },
 
-    async salvar(r) {
+    async salvar(nome, item) {
       await pronto;
-      await pool.query(
-        `INSERT INTO registros
-           (id, nome_eventual, cpf_eventual, data, serie, disciplina,
-            qtd_aulas, nome_professor, cpf_professor)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (id) DO UPDATE SET
-           nome_eventual = $2, cpf_eventual = $3, data = $4, serie = $5,
-           disciplina = $6, qtd_aulas = $7, nome_professor = $8,
-           cpf_professor = $9`,
-        [r.id, r.nomeEventual, r.cpfEventual, r.data, r.serie,
-          r.disciplina, r.qtdAulas, r.nomeProfessor, r.cpfProfessor]);
+      await pool.query(comandoUpsert(nome), valores(nome, item));
     },
 
-    async excluir(id) {
+    async excluir(nome, id) {
       await pronto;
-      const resultado = await pool.query("DELETE FROM registros WHERE id = $1", [id]);
+      const resultado = await pool.query(
+        `DELETE FROM ${COLECOES[nome].tabela} WHERE id = $1`, [id]);
       return resultado.rowCount > 0;
     },
 
-    async importar(registros, substituir) {
+    async importar(dados, substituir) {
       await pronto;
       const cliente = await pool.connect();
       try {
         await cliente.query("BEGIN");
-        if (substituir) await cliente.query("DELETE FROM registros");
-        for (const r of registros) {
-          await cliente.query(
-            `INSERT INTO registros
-               (id, nome_eventual, cpf_eventual, data, serie, disciplina,
-                qtd_aulas, nome_professor, cpf_professor)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-             ON CONFLICT (id) DO NOTHING`,
-            [r.id, r.nomeEventual, r.cpfEventual, r.data, r.serie,
-              r.disciplina, r.qtdAulas, r.nomeProfessor, r.cpfProfessor]);
+        for (const nome of Object.keys(COLECOES)) {
+          const itens = dados[nome] || [];
+          if (substituir) await cliente.query(`DELETE FROM ${COLECOES[nome].tabela}`);
+          for (const item of itens) {
+            const comando = comandoUpsert(nome)
+              .replace(/ON CONFLICT \(id\) DO UPDATE SET .*/s, "ON CONFLICT (id) DO NOTHING");
+            await cliente.query(comando, valores(nome, item));
+          }
         }
         await cliente.query("COMMIT");
       } catch (erro) {
@@ -104,59 +178,68 @@ function criarArmazenamentoPostgres() {
   };
 }
 
-// ===================== Arquivo JSON local =====================
+// ===================== Arquivos JSON locais =====================
 
 function criarArmazenamentoArquivo() {
   const pasta = process.env.DATA_DIR || path.join(__dirname, "dados");
-  const arquivo = path.join(pasta, "registros.json");
 
-  function ler() {
+  function caminho(nome) {
+    return path.join(pasta, nome + ".json");
+  }
+
+  function ler(nome) {
     try {
-      const dados = JSON.parse(fs.readFileSync(arquivo, "utf8"));
+      const dados = JSON.parse(fs.readFileSync(caminho(nome), "utf8"));
       return Array.isArray(dados) ? dados : [];
     } catch (e) {
       return [];
     }
   }
 
-  function gravar(registros) {
+  function gravar(nome, itens) {
     fs.mkdirSync(pasta, { recursive: true });
-    const temporario = arquivo + ".tmp";
-    fs.writeFileSync(temporario, JSON.stringify(registros, null, 2));
-    fs.renameSync(temporario, arquivo); // gravação atômica
+    const temporario = caminho(nome) + ".tmp";
+    fs.writeFileSync(temporario, JSON.stringify(itens, null, 2));
+    fs.renameSync(temporario, caminho(nome)); // gravação atômica
   }
 
   return {
     tipo: "arquivo",
 
-    async listar() {
-      return ler().sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    async listar(nome) {
+      const ordem = COLECOES[nome].ordem === "data" ? "data" : "nome";
+      return ler(nome).sort((a, b) =>
+        String(a[ordem] || "").localeCompare(String(b[ordem] || ""), "pt-BR"));
     },
 
-    async salvar(r) {
-      const registros = ler();
-      const indice = registros.findIndex(x => x.id === r.id);
-      if (indice >= 0) registros[indice] = r;
-      else registros.push(r);
-      gravar(registros);
+    async salvar(nome, item) {
+      const itens = ler(nome);
+      const indice = itens.findIndex(x => x.id === item.id);
+      if (indice >= 0) itens[indice] = item;
+      else itens.push(item);
+      gravar(nome, itens);
     },
 
-    async excluir(id) {
-      const registros = ler();
-      const restantes = registros.filter(r => r.id !== id);
-      gravar(restantes);
-      return restantes.length < registros.length;
+    async excluir(nome, id) {
+      const itens = ler(nome);
+      const restantes = itens.filter(x => x.id !== id);
+      gravar(nome, restantes);
+      return restantes.length < itens.length;
     },
 
-    async importar(novos, substituir) {
-      let registros = substituir ? [] : ler();
-      const existentes = new Set(registros.map(r => r.id));
-      for (const r of novos) {
-        if (!existentes.has(r.id)) registros.push(r);
+    async importar(dados, substituir) {
+      for (const nome of Object.keys(COLECOES)) {
+        const novos = dados[nome] || [];
+        let itens = substituir ? [] : ler(nome);
+        const existentes = new Set(itens.map(x => x.id));
+        for (const item of novos) {
+          if (!existentes.has(item.id)) itens.push(item);
+        }
+        gravar(nome, itens);
       }
-      gravar(registros);
     }
   };
 }
 
 module.exports = URL_BANCO ? criarArmazenamentoPostgres() : criarArmazenamentoArquivo();
+module.exports.COLECOES = Object.keys(COLECOES);
