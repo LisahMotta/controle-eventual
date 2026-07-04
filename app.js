@@ -496,8 +496,7 @@
   var formAula = porId("form-aula");
   var idEmEdicao = null;
 
-  function atualizarSelectEventuais() {
-    var select = porId("sel-eventual");
+  function preencherSelectComEventuais(select) {
     var valorAtual = select.value;
     select.innerHTML = '<option value="">— Selecione o eventual —</option>';
     eventuais.forEach(function (e) {
@@ -509,6 +508,11 @@
     if (valorAtual && eventuais.some(function (e) { return e.id === valorAtual; })) {
       select.value = valorAtual;
     }
+  }
+
+  function atualizarSelectEventuais() {
+    preencherSelectComEventuais(porId("sel-eventual"));
+    preencherSelectComEventuais(porId("folha-eventual"));
     porId("dica-sem-eventuais").hidden = eventuais.length > 0;
     atualizarCpfEventual();
   }
@@ -903,7 +907,70 @@
 
     var nomeArquivo = "relatorio-" +
       nomeEventual.toLowerCase().normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
+      "-" + mes + ".pdf";
+
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 5000);
+  });
+
+  // ===================== Folha de controle =====================
+
+  porId("folha-mes").value = new Date().toISOString().slice(0, 7);
+
+  porId("btn-gerar-folha").addEventListener("click", function () {
+    var id = porId("folha-eventual").value;
+    var mes = porId("folha-mes").value;
+
+    var eventual = eventuais.find(function (e) { return e.id === id; });
+    if (!eventual) {
+      alert("Selecione o eventual. Se a lista estiver vazia, cadastre na aba Eventuais.");
+      return;
+    }
+    if (!mes) {
+      alert("Selecione o mês de referência.");
+      return;
+    }
+
+    // 31 linhas em branco, uma para cada dia do mês
+    var linhas = [];
+    for (var dia = 1; dia <= 31; dia++) {
+      linhas.push([(dia < 10 ? "0" : "") + dia, "", "", "", ""]);
+    }
+
+    var blob = gerarRelatorioPdf({
+      titulo: "Folha de Controle de Aulas Eventuais",
+      subtitulo: "Referência: " + nomeDoMes(mes) +
+        "  —  Anote as aulas dadas no dia e o professor substituído.",
+      infos: [
+        ["Professor eventual", eventual.nome],
+        ["CPF", eventual.cpf]
+      ],
+      colunas: [
+        { titulo: "Dia", largura: 35 },
+        { titulo: "Turma", largura: 90 },
+        { titulo: "Disciplina", largura: 115 },
+        { titulo: "Qtd. aulas", largura: 55 },
+        { titulo: "Professor substituído", largura: 220 }
+      ],
+      linhas: linhas,
+      alturaLinha: 18,
+      reservaFinal: 95,
+      linhasVerticais: true,
+      totalTexto: "TOTAL DE AULAS NO MÊS: ______________          " +
+        "(confira antes de entregar para digitação)",
+      assinaturas: ["Assinatura do eventual", "Assinatura da direção"]
+    });
+
+    var nomeArquivo = "folha-controle-" +
+      eventual.nome.toLowerCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") +
       "-" + mes + ".pdf";
 

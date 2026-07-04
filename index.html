@@ -23,6 +23,7 @@
     <button type="button" class="aba ativa" data-aba="aulas">Registrar aula</button>
     <button type="button" class="aba" data-aba="eventuais">Eventuais</button>
     <button type="button" class="aba" data-aba="professores">Professores</button>
+    <button type="button" class="aba" data-aba="folha">Folha de controle</button>
     <button type="button" class="aba" data-aba="relatorio">Relatório</button>
   </nav>
 
@@ -210,6 +211,34 @@
           </table>
         </div>
         <p class="vazio" id="msg-sem-professores">Nenhum professor cadastrado ainda.</p>
+      </section>
+    </div>
+
+    <!-- ================= ABA: FOLHA DE CONTROLE ================= -->
+    <div class="painel" id="aba-folha" hidden>
+      <section class="cartao">
+        <h2>Folha de controle do eventual</h2>
+        <p class="explicacao">
+          Gere uma folha em PDF para imprimir e entregar ao eventual. Ele anota à mão,
+          dia a dia (1 a 31), as aulas que der e o professor que substituiu. No fim do mês,
+          digite as aulas da folha na aba <strong>Registrar aula</strong> para gerar o
+          relatório de conferência.
+        </p>
+        <div class="grade grade-relatorio">
+          <div class="campo">
+            <label for="folha-eventual">Eventual</label>
+            <select id="folha-eventual">
+              <option value="">— Selecione o eventual —</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="folha-mes">Mês de referência</label>
+            <input type="month" id="folha-mes" />
+          </div>
+          <div class="campo campo-botao">
+            <button type="button" class="btn btn-primario" id="btn-gerar-folha">🖨 Gerar folha em PDF</button>
+          </div>
+        </div>
       </section>
     </div>
 

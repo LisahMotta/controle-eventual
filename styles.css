@@ -299,6 +299,12 @@ tbody tr:hover {
   margin: 0.8rem 0 0;
 }
 
+.explicacao {
+  margin: 0 0 1.1rem;
+  color: #4b5563;
+  font-size: 0.92rem;
+}
+
 .grade-relatorio {
   align-items: end;
 }

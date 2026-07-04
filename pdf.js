@@ -157,11 +157,29 @@
    */
   window.gerarRelatorioPdf = function (opcoes) {
     var xInicial = MARGEM;
-    var alturaLinha = 20;
+    var alturaLinha = opcoes.alturaLinha || 20;
+    var reservaFinal = opcoes.reservaFinal || 120;
     var tamFonteTabela = 9;
     var paginas = [];
     var pagina = null;
     var y = 0;
+
+    function bordasColunas() {
+      var xs = [xInicial];
+      var x = xInicial;
+      for (var c = 0; c < opcoes.colunas.length; c++) {
+        x += opcoes.colunas[c].largura;
+        xs.push(x);
+      }
+      return xs;
+    }
+
+    function linhasVerticais(yTopo, yBase) {
+      if (!opcoes.linhasVerticais) return;
+      bordasColunas().forEach(function (x) {
+        pagina.linha(x, yTopo, x, yBase, 0.6);
+      });
+    }
 
     function novaPagina() {
       pagina = new ConteudoPagina();
@@ -194,8 +212,11 @@
         pagina.texto(x + 4, y - 9, tamFonteTabela, true, opcoes.colunas[c].titulo);
         x += opcoes.colunas[c].largura;
       }
+      var yTopo = y + 5;
       y -= alturaLinha;
+      pagina.linha(xInicial, yTopo, xInicial + larguraTabela(), yTopo, 0.6);
       pagina.linha(xInicial, y + 5, xInicial + larguraTabela(), y + 5, 0.6);
+      linhasVerticais(yTopo, y + 5);
     }
 
     function larguraTabela() {
@@ -207,15 +228,17 @@
     novaPagina();
 
     for (var l = 0; l < opcoes.linhas.length; l++) {
-      if (y < MARGEM + 120) novaPagina(); // reserva espaço p/ total e assinaturas
+      if (y < MARGEM + reservaFinal) novaPagina(); // reserva espaço p/ total e assinaturas
       var x = xInicial;
       for (var c = 0; c < opcoes.colunas.length; c++) {
         var celula = truncar(opcoes.linhas[l][c], opcoes.colunas[c].largura - 8, tamFonteTabela);
         pagina.texto(x + 4, y - 9, tamFonteTabela, false, celula);
         x += opcoes.colunas[c].largura;
       }
+      var yTopoLinha = y + 5;
       y -= alturaLinha;
       pagina.linha(xInicial, y + 5, xInicial + larguraTabela(), y + 5, 0.85);
+      linhasVerticais(yTopoLinha, y + 5);
     }
 
     // Total
