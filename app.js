@@ -516,17 +516,45 @@
   function atualizarSelectProfessores() {
     var select = porId("sel-professor");
     var valorAtual = select.value;
+    var disciplina = porId("disciplina").value;
+
+    // Com uma disciplina escolhida, mostra só os professores dela
+    var lista = professores;
+    var aviso = "";
+    if (disciplina) {
+      var daDisciplina = professores.filter(function (p) {
+        return p.disciplina === disciplina;
+      });
+      if (daDisciplina.length) {
+        lista = daDisciplina;
+      } else if (professores.length) {
+        aviso = "Nenhum professor cadastrado com a disciplina “" + disciplina +
+          "” — mostrando todos.";
+      }
+    }
+
+    // Mantém na lista o professor já escolhido, mesmo que seja de outra
+    // disciplina (ex.: ao editar um registro antigo)
+    if (valorAtual) {
+      var atual = professores.find(function (p) { return p.id === valorAtual; });
+      if (atual && lista.indexOf(atual) < 0) lista = lista.concat([atual]);
+    }
+
     select.innerHTML = '<option value="">— Selecione o professor —</option>';
-    professores.forEach(function (p) {
+    lista.forEach(function (p) {
       var opcao = document.createElement("option");
       opcao.value = p.id;
       opcao.textContent = p.nome + " — " + p.disciplina;
       select.appendChild(opcao);
     });
-    if (valorAtual && professores.some(function (p) { return p.id === valorAtual; })) {
+    if (valorAtual && lista.some(function (p) { return p.id === valorAtual; })) {
       select.value = valorAtual;
     }
+
     porId("dica-sem-professores").hidden = professores.length > 0;
+    var dicaFiltro = porId("dica-filtro-professor");
+    dicaFiltro.textContent = aviso;
+    dicaFiltro.hidden = !aviso;
     atualizarCpfProfessor();
   }
 
@@ -551,12 +579,18 @@
   }
 
   porId("sel-eventual").addEventListener("change", atualizarCpfEventual);
+
+  // Ao escolher a disciplina, filtra a lista de professores
+  porId("disciplina").addEventListener("change", atualizarSelectProfessores);
+
   porId("sel-professor").addEventListener("change", function () {
     atualizarCpfProfessor();
     // sugestão: ao escolher o professor, pré-seleciona a disciplina dele
     var professor = professorSelecionado();
-    if (professor && !idEmEdicao && DISCIPLINAS.indexOf(professor.disciplina) >= 0) {
+    if (professor && !idEmEdicao && DISCIPLINAS.indexOf(professor.disciplina) >= 0 &&
+        !porId("disciplina").value) {
       porId("disciplina").value = professor.disciplina;
+      atualizarSelectProfessores();
     }
   });
 
@@ -564,7 +598,7 @@
     formAula.reset();
     porId("data-aula").value = new Date().toISOString().slice(0, 10);
     atualizarCpfEventual();
-    atualizarCpfProfessor();
+    atualizarSelectProfessores(); // volta a mostrar todos os professores
   }
 
   // Data padrão: hoje
@@ -664,6 +698,7 @@
     porId("data-aula").value = registro.data;
     garantirOpcao(porId("serie"), registro.serie);
     garantirOpcao(porId("disciplina"), registro.disciplina);
+    atualizarSelectProfessores(); // aplica o filtro mantendo o professor do registro
     porId("qtd-aulas").value = String(Math.min(10, Math.max(1, registro.qtdAulas)));
 
     porId("btn-salvar").textContent = "Atualizar registro";
