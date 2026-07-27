@@ -451,8 +451,57 @@ const servidor = http.createServer(async (requisicao, resposta) => {
   }
 });
 
-servidor.listen(PORTA, () => {
+/*
+ * Recuperação de acesso do administrador.
+ * Defina a variável de ambiente RECUPERAR_GOE no formato "usuario:senha".
+ * Ao iniciar, o servidor cria (ou redefine o login e a senha do) usuário
+ * GOE com essas credenciais — útil quando alguém esquece a senha.
+ * Depois de entrar, remova a variável.
+ */
+async function recuperarAcesso() {
+  const spec = process.env.RECUPERAR_GOE;
+  if (!spec) return;
+  const idx = spec.indexOf(":");
+  if (idx < 1) {
+    console.error("RECUPERAR_GOE deve estar no formato usuario:senha.");
+    return;
+  }
+  const login = spec.slice(0, idx).trim().toLowerCase();
+  const senha = spec.slice(idx + 1);
+  if (!login || senha.length < 4) {
+    console.error("RECUPERAR_GOE: informe um usuário e uma senha de pelo menos 4 caracteres.");
+    return;
+  }
+  try {
+    const usuarios = await armazenamento.listar("usuarios");
+    const goe = usuarios.find(u => u.perfil === "GOE");
+    const conflito = usuarios.find(u => u.usuario === login && (!goe || u.id !== goe.id));
+    if (conflito) {
+      console.error("RECUPERAR_GOE: o login '" + login + "' já pertence a outro usuário.");
+      return;
+    }
+    if (goe) {
+      goe.usuario = login;
+      goe.senha = auth.hashSenha(senha);
+      await armazenamento.salvar("usuarios", goe);
+      console.log("RECUPERAR_GOE: acesso do GOE redefinido para o login '" + login + "'.");
+    } else {
+      await armazenamento.salvar("usuarios", {
+        id: novoId(), nome: "Administrador", usuario: login,
+        senha: auth.hashSenha(senha), perfil: "GOE", criadoEm: new Date().toISOString()
+      });
+      console.log("RECUPERAR_GOE: usuário GOE criado com o login '" + login + "'.");
+    }
+    await auditar("Sistema", "Recuperação de acesso",
+      "GOE redefinido via RECUPERAR_GOE (login " + login + ")");
+  } catch (erro) {
+    console.error("RECUPERAR_GOE falhou:", erro.message);
+  }
+}
+
+servidor.listen(PORTA, async () => {
   console.log("Controle de Aula Eventual rodando na porta " + PORTA +
     " | armazenamento: " + armazenamento.tipo +
     " | segredo fixo: " + (process.env.APP_SEGREDO ? "sim" : "não (temporário)"));
+  await recuperarAcesso();
 });

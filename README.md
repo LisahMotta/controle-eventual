@@ -54,6 +54,21 @@ Outros recursos:
 As tabelas do banco são criadas automaticamente na primeira execução — não precisa rodar nenhum comando.
 O controle de acesso é feito pelo **login com perfis** (não há mais código de acesso único).
 
+### Esqueci o usuário ou a senha do administrador
+
+As senhas ficam cifradas (hash) e não podem ser lidas — o caminho é **redefinir**:
+
+1. No Railway, abra o serviço do app → **Variables** e adicione:
+   `RECUPERAR_GOE` = `usuario:senha` (ex.: `diretora:MinhaNovaSenha`).
+2. O app reinicia sozinho. No próximo acesso, entre com esse usuário e senha —
+   o usuário **GOE** passa a ter essas credenciais (se não houver GOE, ele é criado).
+3. Entre no sistema, **remova a variável `RECUPERAR_GOE`** e, se quiser, troque a senha
+   pela aba **Usuários**.
+
+> Dica: para descobrir apenas o **nome de usuário** (sem trocar a senha), abra o banco
+> PostgreSQL no Railway (aba **Data**) e veja a tabela `usuarios` — o login fica visível ali
+> (a senha, não).
+
 ### Rodando sem banco (teste local)
 
 Sem a variável `DATABASE_URL`, o servidor guarda os registros em um arquivo local (`dados/registros.json`): `npm start` e abra `http://localhost:3000`. No Railway, porém, use sempre o PostgreSQL — arquivos locais são apagados a cada novo deploy.
