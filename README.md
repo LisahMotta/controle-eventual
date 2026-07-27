@@ -60,20 +60,21 @@ Sem a variável `DATABASE_URL`, o servidor guarda os registros em um arquivo loc
 
 ## Sistema de design
 
-A aparência é definida por um sistema de design em `styles.css`, com **tokens** reutilizáveis
-declarados em `:root`:
+A aparência é definida por um sistema de design em `styles.css`, no tema **Dark Focus** — base
+escura com o **verde de status como único acento vivo** (reservado à ação primária e ao
+"confirmado"), para descansar a vista em uso prolongado e destacar o que importa. Os **tokens**
+ficam em `:root`:
 
-- **Cores** — escala de azul institucional (`--azul-50…900`) e de neutros (`--cinza-50…900`),
-  com papéis semânticos (`--cor-primaria`, `--superficie`, `--texto`, `--borda`) e estados
-  (sucesso, alerta, perigo, info).
-- **Tipografia** — escala de tamanhos (`--fs-xs…2xl`) e pesos, sobre a fonte do sistema
-  (carrega instantânea e funciona offline).
-- **Espaçamento** (`--esp-1…6`), **raios** (`--raio-sm/lg/full`) e **sombras** (`--sombra-1…3`).
+- **Superfícies** — `--bg`, `--superficie`, `--superficie-2`, `--borda`, `--borda-forte`
+  (a hierarquia vem das superfícies, não de linhas fortes).
+- **Texto** — `--texto`, `--texto-suave`, `--texto-tenue` (contraste AA sobre o escuro).
+- **Acento e estados** — `--cor-primaria` (verde), `--info` (azul, seleção/links),
+  `--sucesso`, `--alerta`, `--perigo`.
+- **Tipografia** (`--fs-*`), **espaçamento** (`--esp-*`), **raios** e **sombras**.
 
-Os componentes (botões, campos, tabelas, abas, etiquetas de perfil, avisos e a tela de acesso)
-usam esses tokens, então para reestilizar o app basta ajustar as variáveis — a mudança se
-propaga por toda a interface. O layout é responsivo (celular a desktop) e respeita
-`prefers-reduced-motion`.
+`color-scheme: dark` deixa os controles nativos (datas, menus) escuros. Os componentes usam só
+esses tokens, então mudar a paleta é ajustar as variáveis — a mudança se propaga por toda a
+interface. O layout é responsivo (celular a desktop) e respeita `prefers-reduced-motion`.
 
 ## Estrutura do projeto
 

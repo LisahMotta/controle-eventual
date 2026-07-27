@@ -1,63 +1,43 @@
 /* ============================================================
-   CONTROLE DE AULA EVENTUAL — Sistema de Design
+   CONTROLE DE AULA EVENTUAL — Sistema de Design (Dark Focus)
    ------------------------------------------------------------
-   1. Tokens (cores, tipografia, espaçamento, raios, sombras)
-   2. Base / reset
-   3. Layout (topo, abas, main, cartões)
-   4. Componentes (botões, campos, tabelas, etiquetas, avisos)
-   5. Telas específicas (acesso, relatório, folha)
-   6. Responsivo e acessibilidade
+   Base escura com verde de status como único acento vivo.
+   1. Tokens  2. Base  3. Layout  4. Componentes
+   5. Telas específicas  6. Responsivo / acessibilidade
    ============================================================ */
 
 /* ===================== 1. TOKENS ===================== */
 :root {
-  /* Azul institucional (escala) */
-  --azul-50:  #eff5fc;
-  --azul-100: #dbe8f7;
-  --azul-200: #bdd3ef;
-  --azul-300: #93b6e3;
-  --azul-400: #5f91d2;
-  --azul-500: #3a72bd;
-  --azul-600: #2d5aa0;
-  --azul-700: #244a83;
-  --azul-800: #1d3c69;
-  --azul-900: #172f52;
+  color-scheme: dark;
 
-  /* Neutros (slate) */
-  --cinza-50:  #f6f8fa;
-  --cinza-100: #eef1f5;
-  --cinza-200: #e2e8f0;
-  --cinza-300: #cbd5e1;
-  --cinza-400: #94a3b8;
-  --cinza-500: #64748b;
-  --cinza-600: #475569;
-  --cinza-700: #334155;
-  --cinza-800: #1e293b;
-  --cinza-900: #0f172a;
+  /* Superfícies */
+  --bg:            #020617;
+  --superficie:    #0e1223;
+  --superficie-2:  #161c2e;
+  --borda:         #1e2740;
+  --borda-forte:   #334155;
 
-  /* Papéis semânticos */
-  --cor-primaria: var(--azul-600);
-  --cor-primaria-forte: var(--azul-700);
-  --cor-primaria-mais-forte: var(--azul-800);
-  --cor-primaria-suave: var(--azul-50);
+  /* Texto */
+  --texto:         #f8fafc;
+  --texto-suave:   #94a3b8;
+  --texto-tenue:   #64748b;
+  --on-accent:     #04210f;
 
-  --fundo: #eaeef4;
-  --superficie: #ffffff;
-  --superficie-2: var(--cinza-50);
-  --borda: var(--cinza-200);
-  --borda-forte: var(--cinza-300);
-
-  --texto: var(--cinza-800);
-  --texto-suave: var(--cinza-600);
-  --texto-tenue: var(--cinza-500);
-  --texto-claro: #ffffff;
+  /* Marca / ação (único acento vivo) */
+  --cor-primaria:        #22c55e;
+  --cor-primaria-forte:  #16a34a;
+  --cor-primaria-suave:  rgba(34, 197, 94, 0.12);
 
   /* Estados */
-  --sucesso-bg: #dcfce7;  --sucesso-tx: #166534;  --sucesso-bd: #86efac;
-  --alerta-bg: #fef3c7;   --alerta-tx: #92400e;   --alerta-bd: #fcd34d;
-  --perigo-bg: #fee2e2;   --perigo-tx: #b91c1c;   --perigo-bd: #fca5a5;
-  --perigo: #dc2626;
-  --info-bg: var(--azul-50); --info-tx: var(--azul-700); --info-bd: var(--azul-200);
+  --info:      #38bdf8;
+  --sucesso:   #22c55e;
+  --alerta:    #fbbf24;
+  --perigo:    #f87171;
+
+  --sucesso-bg: rgba(34, 197, 94, 0.14);  --sucesso-tx: #22c55e;  --sucesso-bd: rgba(34, 197, 94, 0.45);
+  --alerta-bg:  rgba(251, 191, 36, 0.14); --alerta-tx:  #fbbf24;  --alerta-bd:  rgba(251, 191, 36, 0.45);
+  --perigo-bg:  rgba(248, 113, 113, 0.14);--perigo-tx:  #f87171;  --perigo-bd:  rgba(248, 113, 113, 0.5);
+  --info-bg:    rgba(56, 189, 248, 0.14); --info-tx:    #38bdf8;  --info-bd:    rgba(56, 189, 248, 0.45);
 
   /* Tipografia */
   --fonte: "Segoe UI", system-ui, -apple-system, "Roboto", "Helvetica Neue", Arial, sans-serif;
@@ -85,18 +65,18 @@
   --raio-lg: 14px;
   --raio-full: 999px;
 
-  /* Sombras */
-  --sombra-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.07);
-  --sombra-2: 0 6px 18px rgba(15, 23, 42, 0.09);
-  --sombra-3: 0 18px 44px rgba(15, 23, 42, 0.22);
+  /* Sombras (discretas no escuro; profundidade vem das superfícies) */
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --sombra-3: 0 24px 60px rgba(0, 0, 0, 0.6);
 
   /* Diversos */
-  --anel-foco: 0 0 0 3px rgba(58, 114, 189, 0.35);
+  --anel-foco: 0 0 0 3px rgba(34, 197, 94, 0.35);
   --transicao: 150ms ease;
   --largura-conteudo: 1120px;
 
   /* Seta dos selects (SVG embutido, sem dependência externa) */
-  --caret: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%2364748b' d='M1 1l5 5 5-5'/></svg>");
+  --caret: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%2394a3b8' d='M1 1l5 5 5-5'/></svg>");
 }
 
 /* ===================== 2. BASE ===================== */
@@ -112,7 +92,7 @@ body {
   margin: 0;
   font-family: var(--fonte);
   font-size: var(--fs-base);
-  background: var(--fundo);
+  background: var(--bg);
   color: var(--texto);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -129,8 +109,9 @@ h1, h2, h3 {
 
 /* ===================== 3. LAYOUT ===================== */
 .topo {
-  background: linear-gradient(120deg, var(--azul-700), var(--azul-600));
-  color: var(--texto-claro);
+  background: linear-gradient(120deg, var(--superficie), var(--superficie-2));
+  color: var(--texto);
+  border-bottom: 1px solid var(--borda);
   padding: var(--esp-4) var(--esp-5);
   display: flex;
   justify-content: space-between;
@@ -154,7 +135,7 @@ h1, h2, h3 {
 
 .topo p {
   margin: 0.15rem 0 0;
-  opacity: 0.85;
+  color: var(--texto-suave);
   font-size: var(--fs-sm);
 }
 
@@ -163,7 +144,8 @@ h1, h2, h3 {
   align-items: center;
   gap: var(--esp-3);
   font-size: var(--fs-sm);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
   padding: 0.35rem 0.35rem 0.35rem 0.85rem;
   border-radius: var(--raio-full);
 }
@@ -175,7 +157,6 @@ h1, h2, h3 {
   z-index: 20;
   background: var(--superficie);
   border-bottom: 1px solid var(--borda);
-  box-shadow: var(--sombra-1);
   padding: 0 var(--esp-4);
   display: flex;
   gap: 0.15rem;
@@ -198,13 +179,13 @@ h1, h2, h3 {
 }
 
 .aba:hover {
-  color: var(--cor-primaria);
-  background: var(--azul-50);
+  color: var(--texto);
+  background: var(--superficie-2);
 }
 
 .aba.ativa {
-  color: var(--cor-primaria-forte);
-  border-bottom-color: var(--cor-primaria);
+  color: var(--info-tx);
+  border-bottom-color: var(--info-tx);
 }
 
 main {
@@ -236,7 +217,7 @@ main {
   margin: 0 0 var(--esp-4);
   font-size: var(--fs-lg);
   font-weight: var(--peso-forte);
-  color: var(--cor-primaria-forte);
+  color: var(--texto);
   display: flex;
   align-items: center;
   gap: var(--esp-2);
@@ -297,7 +278,7 @@ main {
   font-size: var(--fs-base);
   font-family: inherit;
   color: var(--texto);
-  background: var(--superficie);
+  background: var(--superficie-2);
   transition: border-color var(--transicao), box-shadow var(--transicao);
 }
 
@@ -312,7 +293,7 @@ main {
 }
 
 .campo input::placeholder {
-  color: var(--cinza-400);
+  color: var(--texto-tenue);
 }
 
 .campo input:focus,
@@ -323,7 +304,7 @@ main {
 }
 
 .campo input[readonly] {
-  background: var(--superficie-2);
+  background: var(--superficie);
   color: var(--texto-suave);
   cursor: default;
 }
@@ -333,7 +314,7 @@ main {
 }
 
 .campo input.invalido:focus {
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.3);
 }
 
 .erro {
@@ -360,7 +341,7 @@ main {
 
 /* Botões */
 .btn {
-  --btn-bg: var(--superficie);
+  --btn-bg: var(--superficie-2);
   --btn-bd: var(--borda-forte);
   --btn-tx: var(--texto);
   padding: 0.6rem 1.25rem;
@@ -377,7 +358,7 @@ main {
 }
 
 .btn:hover {
-  background: var(--cinza-100);
+  background: var(--borda);
 }
 
 .btn:active {
@@ -385,7 +366,7 @@ main {
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -393,8 +374,8 @@ main {
 .btn-primario {
   --btn-bg: var(--cor-primaria);
   --btn-bd: var(--cor-primaria);
-  --btn-tx: var(--texto-claro);
-  box-shadow: var(--sombra-1);
+  --btn-tx: var(--on-accent);
+  font-weight: var(--peso-forte);
 }
 
 .btn-primario:hover {
@@ -403,13 +384,13 @@ main {
 }
 
 .btn.btn-claro {
-  --btn-bg: rgba(255, 255, 255, 0.16);
-  --btn-bd: rgba(255, 255, 255, 0.5);
-  --btn-tx: var(--texto-claro);
+  --btn-bg: rgba(255, 255, 255, 0.08);
+  --btn-bd: rgba(255, 255, 255, 0.25);
+  --btn-tx: var(--texto);
 }
 
 .btn.btn-claro:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .btn-pequeno {
@@ -430,7 +411,7 @@ main {
 }
 
 .btn-linha:hover {
-  background: var(--cinza-100);
+  background: var(--superficie-2);
 }
 
 /* Tabelas */
@@ -460,7 +441,7 @@ th {
   font-weight: var(--peso-forte);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--texto-tenue);
+  color: var(--texto-suave);
   position: sticky;
   top: 0;
 }
@@ -474,7 +455,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: var(--azul-50);
+  background: var(--superficie-2);
 }
 
 .celula-turmas {
@@ -496,11 +477,12 @@ tbody tr:hover {
   font-size: var(--fs-xs);
   font-weight: var(--peso-forte);
   letter-spacing: 0.01em;
+  border: 1px solid transparent;
 }
 
-.perfil-GOE { background: var(--info-bg); color: var(--info-tx); }
-.perfil-Secretário { background: var(--sucesso-bg); color: var(--sucesso-tx); }
-.perfil-AOE { background: var(--alerta-bg); color: var(--alerta-tx); }
+.perfil-GOE { background: var(--info-bg); color: var(--info-tx); border-color: var(--info-bd); }
+.perfil-Secretário { background: var(--sucesso-bg); color: var(--sucesso-tx); border-color: var(--sucesso-bd); }
+.perfil-AOE { background: var(--alerta-bg); color: var(--alerta-tx); border-color: var(--alerta-bd); }
 
 /* Avisos / alertas */
 .aviso-banco {
@@ -513,7 +495,7 @@ tbody tr:hover {
 }
 
 .aviso-banco code {
-  background: rgba(185, 28, 28, 0.12);
+  background: rgba(248, 113, 113, 0.2);
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
   font-size: 0.9em;
@@ -538,7 +520,7 @@ tbody tr:hover {
 .grupo-turmas legend {
   font-size: var(--fs-sm);
   font-weight: var(--peso-forte);
-  color: var(--cor-primaria-forte);
+  color: var(--texto-suave);
   padding: 0 0.35rem;
 }
 
@@ -571,8 +553,8 @@ tbody tr:hover {
   justify-content: center;
   padding: var(--esp-5);
   background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(255, 255, 255, 0.12), transparent),
-    linear-gradient(135deg, var(--azul-700), var(--azul-900));
+    radial-gradient(1100px 550px at 15% -10%, rgba(34, 197, 94, 0.12), transparent),
+    linear-gradient(135deg, var(--superficie), var(--bg));
 }
 
 .tela-acesso[hidden] {
@@ -581,6 +563,7 @@ tbody tr:hover {
 
 .cartao-acesso {
   background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: var(--raio-lg);
   padding: var(--esp-6);
   width: 100%;
@@ -592,7 +575,7 @@ tbody tr:hover {
   font-size: var(--fs-lg);
   margin: 0 0 var(--esp-2);
   text-align: center;
-  color: var(--cor-primaria-forte);
+  color: var(--texto);
 }
 
 .cartao-acesso h2 {
@@ -643,13 +626,14 @@ tbody tr:hover {
   color: var(--texto);
 }
 
+/* Total — confirmação: usa o acento verde */
 .total {
   margin: var(--esp-4) 0 0;
   font-weight: var(--peso-forte);
   font-size: var(--fs-md);
-  color: var(--cor-primaria-forte);
-  background: var(--azul-50);
-  border: 1px solid var(--info-bd);
+  color: var(--sucesso-tx);
+  background: var(--sucesso-bg);
+  border: 1px solid var(--sucesso-bd);
   border-radius: var(--raio-sm);
   padding: 0.6rem 0.9rem;
   display: inline-block;
