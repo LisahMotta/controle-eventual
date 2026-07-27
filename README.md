@@ -58,6 +58,23 @@ O controle de acesso é feito pelo **login com perfis** (não há mais código d
 
 Sem a variável `DATABASE_URL`, o servidor guarda os registros em um arquivo local (`dados/registros.json`): `npm start` e abra `http://localhost:3000`. No Railway, porém, use sempre o PostgreSQL — arquivos locais são apagados a cada novo deploy.
 
+## Sistema de design
+
+A aparência é definida por um sistema de design em `styles.css`, com **tokens** reutilizáveis
+declarados em `:root`:
+
+- **Cores** — escala de azul institucional (`--azul-50…900`) e de neutros (`--cinza-50…900`),
+  com papéis semânticos (`--cor-primaria`, `--superficie`, `--texto`, `--borda`) e estados
+  (sucesso, alerta, perigo, info).
+- **Tipografia** — escala de tamanhos (`--fs-xs…2xl`) e pesos, sobre a fonte do sistema
+  (carrega instantânea e funciona offline).
+- **Espaçamento** (`--esp-1…6`), **raios** (`--raio-sm/lg/full`) e **sombras** (`--sombra-1…3`).
+
+Os componentes (botões, campos, tabelas, abas, etiquetas de perfil, avisos e a tela de acesso)
+usam esses tokens, então para reestilizar o app basta ajustar as variáveis — a mudança se
+propaga por toda a interface. O layout é responsivo (celular a desktop) e respeita
+`prefers-reduced-motion`.
+
 ## Estrutura do projeto
 
 | Arquivo            | Descrição                                                        |
