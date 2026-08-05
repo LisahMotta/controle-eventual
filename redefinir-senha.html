@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redefinir senha · Controle Eventual</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: var(--bg); color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55; -webkit-font-smoothing: antialiased;
+      display: grid; place-items: center; padding: 24px;
+    }
+    .glow {
+      position: fixed; inset: -25% 0 auto 0; height: 460px; pointer-events: none; z-index: 0;
+      background: radial-gradient(55% 100% at 50% 0%, rgba(34,197,94,.14), transparent 70%);
+    }
+    .card {
+      position: relative; z-index: 1; width: 100%; max-width: 400px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px 30px;
+      box-shadow: 0 24px 60px -24px rgba(0,0,0,.6);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+    .brand .mark {
+      width: 34px; height: 34px; border-radius: 9px; flex: none;
+      background: var(--accent); color: var(--on-accent);
+      display: grid; place-items: center; font-weight: 800; font-size: 17px;
+    }
+    .brand .name { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+
+    h1 { font-size: 22px; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 700; }
+    .sub { margin: 0 0 24px; color: var(--fg-muted); font-size: 14.5px; }
+
+    form { display: flex; flex-direction: column; gap: 18px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    label { font-size: 13px; font-weight: 600; color: var(--fg); }
+
+    .input-wrap { position: relative; }
+    input[type="password"], input[type="text"] {
+      width: 100%; min-height: 44px; background: var(--bg);
+      border: 1px solid var(--border-strong); border-radius: 10px;
+      color: var(--fg); font-size: 15px; padding: 0 46px 0 14px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input::placeholder { color: var(--fg-faint); }
+    input:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+    input[aria-invalid="true"] { border-color: var(--danger); }
+    input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(248,113,113,.25); }
+
+    .toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border: 0; background: none; cursor: pointer;
+      color: var(--fg-faint); display: grid; place-items: center; border-radius: 8px;
+    }
+    .toggle:hover { color: var(--fg-muted); }
+    .toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+    .toggle svg { width: 20px; height: 20px; }
+
+    /* checklist de requisitos */
+    .reqs { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .reqs li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-faint); }
+    .reqs li .tick {
+      width: 15px; height: 15px; border-radius: 50%; flex: none;
+      border: 1.5px solid var(--fg-faint); display: grid; place-items: center;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .reqs li .tick svg { width: 9px; height: 9px; stroke: var(--on-accent); opacity: 0; }
+    .reqs li.ok { color: var(--fg-muted); }
+    .reqs li.ok .tick { background: var(--accent); border-color: var(--accent); }
+    .reqs li.ok .tick svg { opacity: 1; }
+
+    .error { color: var(--danger); font-size: 12.5px; min-height: 1em; }
+
+    .submit {
+      min-height: 46px; margin-top: 4px;
+      background: var(--accent); color: var(--on-accent);
+      border: 0; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background .15s ease;
+    }
+    .submit:hover:not(:disabled) { background: var(--accent-hover); }
+    .submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(34,197,94,.35); }
+    .submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    .back { margin: 22px 0 0; text-align: center; font-size: 13.5px; }
+    .back a { color: var(--info); font-weight: 600; text-decoration: none; }
+    .back a:hover { text-decoration: underline; }
+
+    /* estado de sucesso */
+    .done-view { display: none; text-align: center; }
+    .done-view .icon {
+      width: 52px; height: 52px; margin: 4px auto 18px; border-radius: 50%;
+      background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.3);
+      display: grid; place-items: center;
+    }
+    .done-view .icon svg { width: 26px; height: 26px; stroke: var(--accent); }
+    .done-view p { color: var(--fg-muted); font-size: 14.5px; margin: 0 0 20px; }
+
+    body.done .form-view { display: none; }
+    body.done .done-view { display: block; }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+
+  <main class="card">
+    <div class="brand">
+      <span class="mark">CE</span>
+      <span class="name">Controle Eventual</span>
+    </div>
+
+    <div class="form-view">
+      <h1>Criar nova senha</h1>
+      <p class="sub">Escolha uma senha nova para acessar sua conta.</p>
+
+      <form id="form" action="#" method="post" novalidate>
+        <div class="field">
+          <label for="senha">Nova senha</label>
+          <div class="input-wrap">
+            <input id="senha" name="senha" type="password" autocomplete="new-password"
+                   placeholder="••••••••" required aria-describedby="reqs" />
+            <button type="button" class="toggle" data-target="senha" aria-label="Mostrar senha">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <ul class="reqs" id="reqs">
+            <li data-rule="len"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Pelo menos 8 caracteres</li>
+            <li data-rule="case"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Letras maiúsculas e minúsculas</li>
+            <li data-rule="num"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Ao menos um número</li>
+          </ul>
+        </div>
+
+        <div class="field">
+          <label for="confirmar">Confirmar senha</label>
+          <div class="input-wrap">
+            <input id="confirmar" name="confirmar" type="password" autocomplete="new-password"
+                   placeholder="••••••••" required aria-describedby="match-error" />
+            <button type="button" class="toggle" data-target="confirmar" aria-label="Mostrar senha">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="error" id="match-error"></span>
+        </div>
+
+        <button type="submit" class="submit" id="submit" disabled>Salvar nova senha</button>
+      </form>
+
+      <p class="back"><a href="login.html">← Voltar ao login</a></p>
+    </div>
+
+    <div class="done-view">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+      </div>
+      <h1>Senha redefinida</h1>
+      <p>Sua senha foi atualizada. Já pode entrar com a nova senha.</p>
+      <p class="back"><a href="login.html">Ir para o login →</a></p>
+    </div>
+  </main>
+
+  <script>
+    var senha = document.getElementById('senha');
+    var confirmar = document.getElementById('confirmar');
+    var submit = document.getElementById('submit');
+    var matchError = document.getElementById('match-error');
+    var rules = {
+      len: function (v) { return v.length >= 8; },
+      case: function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); },
+      num: function (v) { return /[0-9]/.test(v); }
+    };
+
+    function validate() {
+      var v = senha.value;
+      var allRules = true;
+      document.querySelectorAll('.reqs li').forEach(function (li) {
+        var ok = rules[li.dataset.rule](v);
+        li.classList.toggle('ok', ok);
+        if (!ok) allRules = false;
+      });
+
+      var match = confirmar.value.length > 0 && senha.value === confirmar.value;
+      var mismatch = confirmar.value.length > 0 && !match;
+      confirmar.setAttribute('aria-invalid', mismatch ? 'true' : 'false');
+      matchError.textContent = mismatch ? 'As senhas não coincidem.' : '';
+
+      submit.disabled = !(allRules && match);
+    }
+
+    senha.addEventListener('input', validate);
+    confirmar.addEventListener('input', validate);
+
+    document.querySelectorAll('.toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.dataset.target);
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+      });
+    });
+
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (submit.disabled) return;
+      // Sem back-end: envie senha.value ao endpoint de reset e trate a resposta.
+      document.body.classList.add('done');
+    });
+  </script>
+</body>
+</html>
