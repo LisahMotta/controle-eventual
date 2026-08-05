@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle Eventual</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <!-- Protege a rota: sem sessão, volta pro login antes de renderizar. -->
+  <script src="auth.js"></script>
+  <script>if (!CEAuth.currentUser()) location.replace('login.html');</script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: var(--bg); color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    .topbar {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 22px; background: rgba(14,18,35,.85); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand .mark {
+      width: 30px; height: 30px; border-radius: 8px; flex: none;
+      background: var(--accent); color: var(--on-accent);
+      display: grid; place-items: center; font-weight: 800; font-size: 15px;
+    }
+    .brand .name { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+    .spacer { flex: 1; }
+    .who { font-size: 13px; color: var(--fg-muted); }
+    .logout {
+      background: none; border: 1px solid var(--border-strong); color: var(--fg);
+      font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 9px; cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .logout:hover { border-color: var(--danger); color: var(--danger); }
+    .logout:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+    main { max-width: 1000px; margin: 0 auto; padding: 34px 22px 70px; }
+    .greet { font-size: clamp(24px, 4vw, 32px); font-weight: 800; letter-spacing: -.02em; margin: 0 0 4px; }
+    .greet .em { color: var(--accent); }
+    .lede { color: var(--fg-muted); margin: 0 0 30px; font-size: 15px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 26px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .kpi .label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-faint); }
+    .kpi .value { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .kpi .value .delta { font-size: 14px; font-weight: 600; margin-left: 7px; }
+    .kpi .delta.up { color: var(--accent); }
+    .kpi .delta.warn { color: var(--warning); }
+
+    .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .panel h2 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-faint); margin: 0; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 20px; font-size: 14px; border-bottom: 1px solid var(--border); }
+    th { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-faint); }
+    tr:last-child td { border-bottom: 0; }
+    td.when { color: var(--fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+    .b-ok   { color: #4ADE80; background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.25); }
+    .b-wait { color: #FBBF24; background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.25); }
+    .b-off  { color: #F87171; background: rgba(248,113,113,.12);border-color: rgba(248,113,113,.25); }
+
+    .list { list-style: none; margin: 0; padding: 8px 0; }
+    .li { display: flex; align-items: center; gap: 11px; padding: 11px 20px; font-size: 14px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .li .role { color: var(--fg-muted); font-size: 13px; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">CE</span><span class="name">Controle Eventual</span></div>
+    <span class="spacer"></span>
+    <span class="who" id="who"></span>
+    <button class="logout" id="logout">Sair</button>
+  </header>
+
+  <main>
+    <h1 class="greet">Olá, <span class="em" id="greet-name">bem-vinda</span> 👋</h1>
+    <p class="lede">Aqui está o resumo dos plantões desta semana.</p>
+
+    <section class="kpis">
+      <div class="kpi"><div class="label">Plantões</div><div class="value">18<span class="delta up">+3</span></div></div>
+      <div class="kpi"><div class="label">Confirmados</div><div class="value">12</div></div>
+      <div class="kpi"><div class="label">Pendentes</div><div class="value">4<span class="delta warn">!</span></div></div>
+      <div class="kpi"><div class="label">Cancelados</div><div class="value">2</div></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Plantões da semana</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Pessoa</th><th>Turno</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Ana Ribeiro</td><td class="when">Seg · 08h</td><td><span class="badge b-ok">Confirmado</span></td></tr>
+              <tr><td>Carlos Menezes</td><td class="when">Ter · 14h</td><td><span class="badge b-wait">Pendente</span></td></tr>
+              <tr><td>Júlia Prado</td><td class="when">Qua · 08h</td><td><span class="badge b-ok">Confirmado</span></td></tr>
+              <tr><td>Rafael Souza</td><td class="when">Qui · 19h</td><td><span class="badge b-off">Cancelado</span></td></tr>
+              <tr><td>Marina Costa</td><td class="when">Sex · 08h</td><td><span class="badge b-wait">Pendente</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Disponíveis hoje</h2>
+        <ul class="list">
+          <li class="li"><span class="dot" style="background:var(--accent)"></span>Ana Ribeiro<span class="role">Manhã</span></li>
+          <li class="li"><span class="dot" style="background:var(--accent)"></span>Júlia Prado<span class="role">Manhã</span></li>
+          <li class="li"><span class="dot" style="background:var(--warning)"></span>Marina Costa<span class="role">Tarde</span></li>
+          <li class="li"><span class="dot" style="background:var(--accent)"></span>Pedro Alves<span class="role">Noite</span></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    var email = CEAuth.currentUser();
+    document.getElementById('who').textContent = email || '';
+    // Usa o nome do cadastro, se houver; senão a parte antes do @.
+    try {
+      var users = JSON.parse(localStorage.getItem('ce_users')) || {};
+      var name = (users[email] && users[email].name) || (email ? email.split('@')[0] : '');
+      if (name) document.getElementById('greet-name').textContent = name;
+    } catch (e) {}
+
+    document.getElementById('logout').addEventListener('click', function () {
+      CEAuth.logout();
+      location.href = 'login.html';
+    });
+  </script>
+</body>
+</html>

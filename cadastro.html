@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar acesso · Controle Eventual</title>
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: var(--bg); color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55; -webkit-font-smoothing: antialiased;
+      display: grid; place-items: center; padding: 24px;
+    }
+    .glow {
+      position: fixed; inset: -25% 0 auto 0; height: 460px; pointer-events: none; z-index: 0;
+      background: radial-gradient(55% 100% at 50% 0%, rgba(34,197,94,.14), transparent 70%);
+    }
+    .card {
+      position: relative; z-index: 1; width: 100%; max-width: 400px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px 30px;
+      box-shadow: 0 24px 60px -24px rgba(0,0,0,.6);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+    .brand .mark {
+      width: 34px; height: 34px; border-radius: 9px; flex: none;
+      background: var(--accent); color: var(--on-accent);
+      display: grid; place-items: center; font-weight: 800; font-size: 17px;
+    }
+    .brand .name { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+
+    h1 { font-size: 22px; letter-spacing: -.02em; margin: 0 0 4px; font-weight: 700; }
+    .sub { margin: 0 0 24px; color: var(--fg-muted); font-size: 14.5px; }
+
+    form { display: flex; flex-direction: column; gap: 18px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    label { font-size: 13px; font-weight: 600; color: var(--fg); }
+
+    .input-wrap { position: relative; }
+    input {
+      width: 100%; min-height: 44px; background: var(--bg);
+      border: 1px solid var(--border-strong); border-radius: 10px;
+      color: var(--fg); font-size: 15px; padding: 0 14px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input[type="password"] { padding-right: 46px; }
+    input::placeholder { color: var(--fg-faint); }
+    input:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+    input[aria-invalid="true"] { border-color: var(--danger); }
+
+    .toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border: 0; background: none; cursor: pointer;
+      color: var(--fg-faint); display: grid; place-items: center; border-radius: 8px;
+    }
+    .toggle:hover { color: var(--fg-muted); }
+    .toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+    .toggle svg { width: 20px; height: 20px; }
+
+    .reqs { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .reqs li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-faint); }
+    .reqs li .tick {
+      width: 15px; height: 15px; border-radius: 50%; flex: none;
+      border: 1.5px solid var(--fg-faint); display: grid; place-items: center;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .reqs li .tick svg { width: 9px; height: 9px; stroke: var(--on-accent); opacity: 0; }
+    .reqs li.ok { color: var(--fg-muted); }
+    .reqs li.ok .tick { background: var(--accent); border-color: var(--accent); }
+    .reqs li.ok .tick svg { opacity: 1; }
+
+    .error { color: var(--danger); font-size: 12.5px; min-height: 1em; }
+
+    .submit {
+      min-height: 46px; margin-top: 4px;
+      background: var(--accent); color: var(--on-accent);
+      border: 0; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background .15s ease;
+    }
+    .submit:hover:not(:disabled) { background: var(--accent-hover); }
+    .submit:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(34,197,94,.35); }
+    .submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    .signin { margin: 22px 0 0; text-align: center; font-size: 13.5px; color: var(--fg-muted); }
+    .signin a { color: var(--info); font-weight: 600; text-decoration: none; }
+    .signin a:hover { text-decoration: underline; }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+
+  <main class="card">
+    <div class="brand">
+      <span class="mark">CE</span>
+      <span class="name">Controle Eventual</span>
+    </div>
+
+    <h1>Criar acesso</h1>
+    <p class="sub">Cadastre-se para começar a gerenciar os plantões.</p>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome" />
+      </div>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" autocomplete="email"
+               placeholder="voce@exemplo.com" required />
+      </div>
+
+      <div class="field">
+        <label for="senha">Senha</label>
+        <div class="input-wrap">
+          <input id="senha" name="senha" type="password" autocomplete="new-password"
+                 placeholder="••••••••" required aria-describedby="reqs" />
+          <button type="button" class="toggle" data-target="senha" aria-label="Mostrar senha">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <ul class="reqs" id="reqs">
+          <li data-rule="len"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Pelo menos 8 caracteres</li>
+          <li data-rule="case"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Letras maiúsculas e minúsculas</li>
+          <li data-rule="num"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>Ao menos um número</li>
+        </ul>
+      </div>
+
+      <p class="error" id="form-error" role="alert"></p>
+
+      <button type="submit" class="submit" id="submit" disabled>Criar conta</button>
+    </form>
+
+    <p class="signin">Já tem conta? <a href="login.html">Entrar</a></p>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    if (CEAuth.currentUser()) location.replace('app.html');
+
+    var senha = document.getElementById('senha');
+    var submit = document.getElementById('submit');
+    var formError = document.getElementById('form-error');
+    var rules = {
+      len: function (v) { return v.length >= 8; },
+      case: function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); },
+      num: function (v) { return /[0-9]/.test(v); }
+    };
+
+    function validate() {
+      var v = senha.value, allOk = true;
+      document.querySelectorAll('.reqs li').forEach(function (li) {
+        var ok = rules[li.dataset.rule](v);
+        li.classList.toggle('ok', ok);
+        if (!ok) allOk = false;
+      });
+      submit.disabled = !allOk;
+    }
+    senha.addEventListener('input', validate);
+
+    document.querySelector('.toggle').addEventListener('click', function () {
+      var show = senha.type === 'password';
+      senha.type = show ? 'text' : 'password';
+      this.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+    });
+
+    document.getElementById('form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (submit.disabled) return;
+      formError.textContent = '';
+      try {
+        await CEAuth.register({
+          name: document.getElementById('nome').value,
+          email: document.getElementById('email').value,
+          password: senha.value
+        });
+        location.href = 'app.html';
+      } catch (ex) {
+        formError.textContent = ex.message;
+      }
+    });
+  </script>
+</body>
+</html>

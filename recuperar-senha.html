@@ -46,6 +46,12 @@
     }
     input::placeholder { color: var(--fg-faint); }
     input:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+    input[aria-invalid="true"] { border-color: var(--danger); }
+
+    .error { color: var(--danger); font-size: 12.5px; min-height: 1em; }
+    .error a { color: var(--info); font-weight: 600; }
+
+    .hint { font-size: 12px; color: var(--fg-faint); margin: -6px 0 0; }
 
     .submit {
       min-height: 46px; margin-top: 4px;
@@ -60,21 +66,6 @@
     .back a { color: var(--info); font-weight: 600; text-decoration: none; }
     .back a:hover { text-decoration: underline; }
 
-    /* estado de confirmação (aparece após enviar) */
-    .sent { display: none; text-align: center; }
-    .sent .icon {
-      width: 52px; height: 52px; margin: 4px auto 18px; border-radius: 50%;
-      background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.3);
-      display: grid; place-items: center;
-    }
-    .sent .icon svg { width: 26px; height: 26px; stroke: var(--accent); }
-    .sent h1 { margin-bottom: 8px; }
-    .sent p { color: var(--fg-muted); font-size: 14.5px; margin: 0 0 6px; }
-    .sent .mail { color: var(--fg); font-weight: 600; }
-
-    body.done .form-view { display: none; }
-    body.done .sent { display: block; }
-
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
@@ -87,43 +78,36 @@
       <span class="name">Controle Eventual</span>
     </div>
 
-    <div class="form-view">
-      <h1>Recuperar senha</h1>
-      <p class="sub">Digite o e-mail da sua conta e enviaremos um link para redefinir a senha.</p>
+    <h1>Recuperar senha</h1>
+    <p class="sub">Informe o e-mail da sua conta para definir uma nova senha.</p>
 
-      <form id="form" action="#" method="post" novalidate>
-        <div class="field">
-          <label for="email">E-mail</label>
-          <input id="email" name="email" type="email" autocomplete="email"
-                 placeholder="voce@exemplo.com" required />
-        </div>
-        <button type="submit" class="submit">Enviar link de redefinição</button>
-      </form>
-
-      <p class="back"><a href="login.html">← Voltar ao login</a></p>
-    </div>
-
-    <div class="sent">
-      <div class="icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 12.5l5 5L20 6.5" />
-        </svg>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" autocomplete="email"
+               placeholder="voce@exemplo.com" required />
       </div>
-      <h1>Verifique seu e-mail</h1>
-      <p>Se houver uma conta associada a</p>
-      <p class="mail" id="sent-mail">seu e-mail</p>
-      <p>enviamos um link para redefinir a senha. Ele expira em 30 minutos.</p>
-      <p class="back"><a href="login.html">← Voltar ao login</a></p>
-    </div>
+      <p class="error" id="error" role="alert"></p>
+      <p class="hint">No momento a redefinição acontece direto na próxima tela. Quando o app tiver e-mail configurado, enviaremos um link por e-mail.</p>
+      <button type="submit" class="submit">Continuar</button>
+    </form>
+
+    <p class="back"><a href="login.html">← Voltar ao login</a></p>
   </main>
 
+  <script src="auth.js"></script>
   <script>
-    // Demonstração de fluxo: exibe o estado de confirmação sem back-end real.
     document.getElementById('form').addEventListener('submit', function (e) {
       e.preventDefault();
       var email = document.getElementById('email').value.trim();
-      if (email) document.getElementById('sent-mail').textContent = email;
-      document.body.classList.add('done');
+      var error = document.getElementById('error');
+      error.innerHTML = '';
+      if (CEAuth.accountExists(email)) {
+        location.href = 'redefinir-senha.html?email=' + encodeURIComponent(email);
+      } else {
+        error.innerHTML = 'Não encontramos uma conta com esse e-mail. ' +
+          '<a href="cadastro.html">Criar acesso</a>';
+      }
     });
   </script>
 </body>
