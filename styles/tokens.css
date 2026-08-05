@@ -1,0 +1,29 @@
+/* Controle Eventual — Design tokens (paleta "Dark Focus") */
+:root {
+  /* superfícies */
+  --bg:            #020617;
+  --surface:       #0E1223;
+  --surface-2:     #161C2E;
+  --border:        #1E2740;
+  --border-strong: #334155;
+
+  /* texto */
+  --fg:            #F8FAFC;
+  --fg-muted:      #94A3B8;
+  --fg-faint:      #64748B;
+
+  /* marca / ação */
+  --accent:        #22C55E;
+  --accent-hover:  #16A34A;
+  --on-accent:     #04210F;
+
+  /* estados */
+  --success:       #22C55E;
+  --warning:       #FBBF24;
+  --danger:        #F87171;
+  --info:          #38BDF8;
+  --ring:          #22C55E;
+
+  /* forma */
+  --radius:        14px;
+}
