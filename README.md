@@ -23,6 +23,10 @@ Abas do app (visíveis conforme o perfil):
 - **Folha de controle** — gera uma folha em PDF (1 a 31) para o eventual anotar as aulas à mão,
   inclusive uma **folha em branco** para o eventual de emergência ainda não cadastrado.
 - **Relatório** — relatório mensal por eventual, com prévia na tela e PDF.
+- **Boletim (B.O.)** — gera o Boletim de Ocorrências em PDF (no formato oficial da SEDUC-SP) para
+  pagamento: escolhe-se o eventual e o mês, e a grade dia a dia (1 a 31) é preenchida na coluna
+  **Substituições** com as aulas lançadas, com o total do mês e campos de assinatura. Os dados da
+  escola (estabelecimento, U.A., CIE, telefone) ficam salvos no navegador.
 - **Usuários** (GOE/Secretário) — cadastro e edição de usuários e perfis.
 - **Auditoria** (GOE) — log de quem acessou o sistema e das alterações feitas.
 

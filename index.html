@@ -149,6 +149,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="13" rx="1"/></svg>
           <span>Relatórios</span>
         </button>
+        <button type="button" class="aba" data-aba="bo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h5"/></svg>
+          <span>Boletim (B.O.)</span>
+        </button>
         <button type="button" class="aba" data-aba="usuarios" data-perm="gerenciarUsuarios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 7-7"/><path d="m16 5 3 3"/><path d="m19 8 2-2-3-3-2 2"/></svg>
           <span>Usuários</span>
@@ -472,6 +476,67 @@
               <p class="total" id="total-previa"></p>
             </div>
             <p class="vazio" id="msg-relatorio-vazio" hidden>Nenhuma aula encontrada para o eventual e mês selecionados.</p>
+          </section>
+        </div>
+
+        <!-- ===== BOLETIM (B.O.) ===== -->
+        <div class="painel" id="aba-bo" hidden>
+          <section class="cartao">
+            <h2>Boletim de Ocorrências (B.O.) para pagamento</h2>
+            <p class="explicacao">
+              Gere o <strong>B.O.</strong> em PDF de um eventual para o mês, com a grade dia a dia
+              preenchida pelas aulas lançadas (coluna <strong>Substituições</strong>) e o total para
+              conferência e pagamento. Os dados da escola abaixo ficam salvos neste navegador.
+            </p>
+            <div class="grade">
+              <div class="campo">
+                <label for="bo-eventual">Professor eventual</label>
+                <select id="bo-eventual">
+                  <option value="">— Selecione o eventual —</option>
+                  <option value="__branco__">Em branco — professor não cadastrado</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="bo-mes">Mês de referência</label>
+                <input type="month" id="bo-mes" />
+              </div>
+              <div class="campo">
+                <label for="bo-rg">R.G. do professor (opcional)</label>
+                <input type="text" id="bo-rg" placeholder="00.000.000-0" />
+              </div>
+              <div class="campo">
+                <label for="bo-sitcat">Sit. / Cat.</label>
+                <input type="text" id="bo-sitcat" placeholder="EVENTUAL" />
+              </div>
+            </div>
+
+            <h3 class="bo-subtitulo">Dados da escola (B.O.)</h3>
+            <div class="grade">
+              <div class="campo">
+                <label for="bo-estabelecimento">Estabelecimento</label>
+                <input type="text" id="bo-estabelecimento" placeholder="Nome da escola" />
+              </div>
+              <div class="campo">
+                <label for="bo-regiao">Diretoria / Região</label>
+                <input type="text" id="bo-regiao" placeholder="Região de ..." />
+              </div>
+              <div class="campo">
+                <label for="bo-ua">Cód. da U.A.</label>
+                <input type="text" id="bo-ua" placeholder="00000" />
+              </div>
+              <div class="campo">
+                <label for="bo-cie">Cód. do CIE</label>
+                <input type="text" id="bo-cie" placeholder="000000" />
+              </div>
+              <div class="campo">
+                <label for="bo-tel">Telefone</label>
+                <input type="text" id="bo-tel" placeholder="0000.0000" />
+              </div>
+            </div>
+
+            <div class="acoes">
+              <button type="button" class="btn btn-primario" id="btn-gerar-bo">Gerar B.O. em PDF</button>
+            </div>
           </section>
         </div>
 

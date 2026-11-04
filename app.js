@@ -173,7 +173,7 @@
   var TITULOS_ABA = {
     dashboard: "Dashboard", aulas: "Registrar aula", eventuais: "Eventuais",
     professores: "Professores", folha: "Folha de controle", relatorio: "Relatórios",
-    usuarios: "Usuários", auditoria: "Auditoria"
+    bo: "Boletim (B.O.)", usuarios: "Usuários", auditoria: "Auditoria"
   };
 
   function irParaAba(nome) {
@@ -597,6 +597,7 @@
   function atualizarSelectEventuais() {
     preencherSelectComEventuais(porId("sel-eventual"), false);
     preencherSelectComEventuais(porId("folha-eventual"), true);
+    preencherSelectComEventuais(porId("bo-eventual"), true);
     porId("dica-sem-eventuais").hidden = eventuais.length > 0;
     atualizarCpfEventual();
   }
@@ -1069,6 +1070,139 @@
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 5000);
+  });
+
+  // ===================== Boletim de Ocorrências (B.O.) =====================
+
+  var CHAVE_BO = "controle-aula-eventual:bo";
+  var BO_PADRAO = {
+    estabelecimento: "E.E. PROFª MALBA THEREZA F. CAMPANER",
+    regiao: "Região de São José dos Campos",
+    ua: "57400", cie: "042316", tel: "3931.6322"
+  };
+  var DIAS_SEMANA = ["D", "2ª", "3ª", "4ª", "5ª", "6ª", "S"];
+
+  function carregarConfigBo() {
+    var cfg;
+    try { cfg = JSON.parse(localStorage.getItem(CHAVE_BO)); } catch (e) { cfg = null; }
+    cfg = cfg || {};
+    return {
+      estabelecimento: cfg.estabelecimento || BO_PADRAO.estabelecimento,
+      regiao: cfg.regiao || BO_PADRAO.regiao,
+      ua: cfg.ua || BO_PADRAO.ua,
+      cie: cfg.cie || BO_PADRAO.cie,
+      tel: cfg.tel || BO_PADRAO.tel
+    };
+  }
+
+  (function prefillBo() {
+    var cfg = carregarConfigBo();
+    porId("bo-estabelecimento").value = cfg.estabelecimento;
+    porId("bo-regiao").value = cfg.regiao;
+    porId("bo-ua").value = cfg.ua;
+    porId("bo-cie").value = cfg.cie;
+    porId("bo-tel").value = cfg.tel;
+    porId("bo-sitcat").value = "EVENTUAL";
+    porId("bo-mes").value = new Date().toISOString().slice(0, 7);
+  })();
+
+  function diasNoMes(mes) {
+    var ano = parseInt(mes.slice(0, 4), 10);
+    var m = parseInt(mes.slice(5, 7), 10);
+    return new Date(ano, m, 0).getDate();
+  }
+
+  porId("btn-gerar-bo").addEventListener("click", function () {
+    var id = porId("bo-eventual").value;
+    var mes = porId("bo-mes").value;
+    if (!mes) { alert("Selecione o mês de referência."); return; }
+
+    var emBranco = id === "__branco__";
+    var eventual = emBranco
+      ? { nome: "______________________________________", cpf: "" }
+      : eventuais.find(function (e) { return e.id === id; });
+    if (!eventual) {
+      alert("Selecione o eventual, ou escolha a opção em branco.");
+      return;
+    }
+
+    // salva os dados da escola para as próximas vezes
+    var cfg = {
+      estabelecimento: porId("bo-estabelecimento").value.trim(),
+      regiao: porId("bo-regiao").value.trim(),
+      ua: porId("bo-ua").value.trim(),
+      cie: porId("bo-cie").value.trim(),
+      tel: porId("bo-tel").value.trim()
+    };
+    try { localStorage.setItem(CHAVE_BO, JSON.stringify(cfg)); } catch (e) {}
+
+    var rg = porId("bo-rg").value.trim() || "____________________";
+    var sitcat = porId("bo-sitcat").value.trim() || "EVENTUAL";
+    var ano = parseInt(mes.slice(0, 4), 10);
+    var mesNum = parseInt(mes.slice(5, 7), 10);
+    var nDias = diasNoMes(mes);
+
+    // grade dia a dia: coluna Substituições = aulas do eventual no dia
+    var linhas = [];
+    var totalMes = 0;
+    for (var dia = 1; dia <= nDias; dia++) {
+      var dataIso = mes + "-" + (dia < 10 ? "0" : "") + dia;
+      var sem = DIAS_SEMANA[new Date(ano, mesNum - 1, dia).getDay()];
+      var qtd = emBranco ? 0 : registros
+        .filter(function (r) { return r.cpfEventual === eventual.cpf && r.data === dataIso; })
+        .reduce(function (s, r) { return s + (r.qtdAulas || 1); }, 0);
+      totalMes += qtd;
+      var marca = qtd > 0 ? String(qtd) : "";
+      linhas.push([String(dia), sem, "", marca, "", marca, "", ""]);
+    }
+
+    var periodo = "01/" + (mesNum < 10 ? "0" : "") + mesNum + "/" + ano +
+      " a " + nDias + "/" + (mesNum < 10 ? "0" : "") + mesNum + "/" + ano;
+
+    var infos = [
+      ["Professor(a)", eventual.nome],
+      ["R.G.  /  Sit.-Cat.", rg + "    /    " + sitcat],
+      ["Cód. U.A.  /  CIE  /  Tel.", cfg.ua + "    ·    CIE " + cfg.cie + "    ·    Tel. " + cfg.tel],
+      ["Período de apuração", periodo]
+    ];
+    if (!emBranco && eventual.cpf) {
+      infos.splice(1, 0, ["CPF", eventual.cpf]);
+    }
+
+    var blob = gerarRelatorioPdf({
+      titulo: "Boletim de Ocorrências — B.O.",
+      subtitulo: cfg.estabelecimento + (cfg.regiao ? "   —   " + cfg.regiao : ""),
+      infos: infos,
+      colunas: [
+        { titulo: "Dia", largura: 30 },
+        { titulo: "Sem.", largura: 34 },
+        { titulo: "Funções Remun.", largura: 78 },
+        { titulo: "Substituições", largura: 80 },
+        { titulo: "Recup./Repos.", largura: 70 },
+        { titulo: "Total Geral", largura: 62 },
+        { titulo: "Horas-Aula", largura: 70 },
+        { titulo: "Natureza", largura: 91 }
+      ],
+      linhas: linhas,
+      alturaLinha: 15,
+      reservaFinal: 100,
+      linhasVerticais: true,
+      totalTexto: "TOTAL DE AULAS (SUBSTITUIÇÕES) NO MÊS: " +
+        (emBranco ? "____________" : totalMes),
+      assinaturas: ["Assinatura do responsável", "Recebi em ____/____/______   —   Assinatura"]
+    });
+
+    var baseNome = emBranco ? "em-branco" :
+      eventual.nome.toLowerCase().normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "bo-" + baseNome + "-" + mes + ".pdf";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

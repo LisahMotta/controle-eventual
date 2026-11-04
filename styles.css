@@ -526,6 +526,8 @@ tbody tr:hover { background: var(--primary-50); }
 .campo-turmas { margin-top: var(--e4); }
 
 /* Relatório */
+.bo-subtitulo { margin: var(--e5) 0 var(--e3); font-size: var(--fs-md); font-weight: 700; color: var(--text-2); border-top: 1px solid var(--border); padding-top: var(--e4); }
+
 .grade-relatorio { align-items: end; }
 .campo-botao { justify-content: flex-end; }
 #previa-relatorio { margin-top: var(--e5); border-top: 1px solid var(--border); padding-top: var(--e4); }
