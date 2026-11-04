@@ -36,6 +36,18 @@
     "Redação e Leitura", "Biologia", "Química", "Física",
     "Sociologia", "Filosofia"];
 
+  // Código oficial de cada disciplina (usado no B.O. para aula livre).
+  // Preencher com os códigos da aba de disciplinas da escola. Enquanto
+  // uma disciplina não tiver código aqui, o B.O. mostra o nome dela.
+  var DISCIPLINA_CODIGO = {
+    // "Português": "1101",
+    // "Matemática": "1201",
+  };
+
+  function codigoDisciplina(nome) {
+    return DISCIPLINA_CODIGO[nome] || nome;
+  }
+
   // ===================== Utilidades =====================
 
   function porId(id) {
@@ -1198,11 +1210,16 @@
       });
       var qtd = doDia.reduce(function (s, r) { return s + (r.qtdAulas || 1); }, 0);
       totalMes += qtd;
-      var prof = distintos(doDia.map(function (r) { return r.nomeProfessor; }));
-      var rgs = distintos(doDia.map(function (r) { return r.rgProfessor; }));
-      var discs = distintos(doDia.map(function (r) { return r.disciplina; }));
+      var ehLivre = function (r) {
+        return !r.cpfProfessor || r.nomeProfessor === "Aula livre (99)";
+      };
+      // substituições: mostra o R.G. do titular; aula livre: mostra o código da disciplina
+      var rgs = distintos(doDia.filter(function (r) { return !ehLivre(r); })
+        .map(function (r) { return r.rgProfessor; }));
+      var codigos = distintos(doDia.filter(ehLivre)
+        .map(function (r) { return codigoDisciplina(r.disciplina); }));
       var marca = qtd > 0 ? String(qtd) : "";
-      linhas.push([String(dia), sem, prof, rgs, discs, marca, marca]);
+      linhas.push([String(dia), sem, rgs, codigos, marca, marca]);
     }
 
     var periodo = "01/" + (mesNum < 10 ? "0" : "") + mesNum + "/" + ano +
@@ -1224,13 +1241,12 @@
         "     ·     U.A. " + cfg.ua + "  ·  CIE " + cfg.cie + "  ·  Tel. " + cfg.tel,
       infos: infos,
       colunas: [
-        { titulo: "Dia", largura: 26 },
-        { titulo: "Sem.", largura: 30 },
-        { titulo: "Prof. substituído", largura: 140 },
-        { titulo: "R.G.", largura: 80 },
-        { titulo: "Disciplina", largura: 112 },
-        { titulo: "Subst.", largura: 45 },
-        { titulo: "Total Geral", largura: 82 }
+        { titulo: "Dia", largura: 32 },
+        { titulo: "Sem.", largura: 38 },
+        { titulo: "R.G. do substituído", largura: 150 },
+        { titulo: "Cód. disc. (aula livre)", largura: 135 },
+        { titulo: "Subst.", largura: 70 },
+        { titulo: "Total Geral", largura: 90 }
       ],
       linhas: linhas,
       alturaLinha: 15,

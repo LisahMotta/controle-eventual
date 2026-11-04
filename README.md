@@ -26,11 +26,12 @@ Abas do app (visíveis conforme o perfil):
   inclusive uma **folha em branco** para o eventual de emergência ainda não cadastrado.
 - **Relatório** — relatório mensal por eventual, com prévia na tela e PDF.
 - **Boletim (B.O.)** — gera o Boletim de Ocorrências em PDF (no formato oficial da SEDUC-SP) para
-  pagamento: escolhe-se o eventual e o mês, e a grade dia a dia é preenchida com o **professor
-  substituído** e o **R.G.** dele (do cadastro), a **disciplina** e a quantidade (coluna
-  Substituições), com o total do mês e campos de assinatura. A **escola sede** do eventual entra no
-  cabeçalho; a aula livre (99) aparece com a disciplina no lugar do titular. Os dados da escola
-  (estabelecimento, U.A., CIE, telefone) ficam salvos no navegador.
+  pagamento: escolhe-se o eventual e o mês, e a grade dia a dia traz, por dia, o **R.G. do titular
+  substituído** e a **quantidade** de aulas; nas **aulas livres (99)**, no lugar do R.G., entra o
+  **código da disciplina** (mapa `DISCIPLINA_CODIGO` em `app.js`; enquanto um código não é
+  informado, mostra o nome da disciplina). Traz o total do mês e campos de assinatura; a **escola
+  sede** do eventual entra no cabeçalho. Os dados da escola (estabelecimento, U.A., CIE, telefone)
+  ficam salvos no navegador.
 - **Usuários** (GOE/Secretário) — cadastro e edição de usuários e perfis.
 - **Auditoria** (GOE) — log de quem acessou o sistema e das alterações feitas.
 
