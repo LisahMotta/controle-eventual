@@ -73,23 +73,25 @@ As senhas ficam cifradas (hash) e não podem ser lidas — o caminho é **redefi
 
 Sem a variável `DATABASE_URL`, o servidor guarda os registros em um arquivo local (`dados/registros.json`): `npm start` e abra `http://localhost:3000`. No Railway, porém, use sempre o PostgreSQL — arquivos locais são apagados a cada novo deploy.
 
-## Sistema de design
+## Interface e sistema de design
 
-A aparência é definida por um sistema de design em `styles.css`, no tema **Dark Focus** — base
-escura com o **verde de status como único acento vivo** (reservado à ação primária e ao
-"confirmado"), para descansar a vista em uso prolongado e destacar o que importa. Os **tokens**
-ficam em `:root`:
+A interface tem aparência **institucional** (inspirada em Microsoft 365 / Azure / GOV.BR), em
+**modo claro**: tela de **login em duas colunas**, **sidebar** de navegação recolhível,
+**header fixo** com trilha de navegação (breadcrumb), notificações e menu de usuário, e um
+**Dashboard** com indicadores (KPIs), distribuição por disciplina e aulas recentes — tudo
+calculado a partir dos dados reais do sistema.
 
-- **Superfícies** — `--bg`, `--superficie`, `--superficie-2`, `--borda`, `--borda-forte`
-  (a hierarquia vem das superfícies, não de linhas fortes).
-- **Texto** — `--texto`, `--texto-suave`, `--texto-tenue` (contraste AA sobre o escuro).
-- **Acento e estados** — `--cor-primaria` (verde), `--info` (azul, seleção/links),
-  `--sucesso`, `--alerta`, `--perigo`.
-- **Tipografia** (`--fs-*`), **espaçamento** (`--esp-*`), **raios** e **sombras**.
+A aparência é definida por um sistema de design em `styles.css`, com **tokens** em `:root`:
 
-`color-scheme: dark` deixa os controles nativos (datas, menus) escuros. Os componentes usam só
-esses tokens, então mudar a paleta é ajustar as variáveis — a mudança se propaga por toda a
-interface. O layout é responsivo (celular a desktop) e respeita `prefers-reduced-motion`.
+- **Cores** — azul institucional (`--primary` = `#1E3A8A`), neutros e estados
+  (`--ok-*`, `--warn-*`, `--dang-*`, `--info-*`).
+- **Superfícies** — `--bg` (`#F8FAFC`), `--surface`, `--surface-2`, `--border`.
+- **Tipografia** — fonte **Inter** (com fallback do sistema), escala `--fs-*`.
+- **Espaçamento** em múltiplos de 8 (`--e1…--e7`), **raios** de 12px (`--r`) e **sombras** discretas.
+
+Os ícones são SVG inline (estilo Lucide), sem dependências externas. O layout é responsivo
+(a sidebar vira menu lateral no celular) e respeita `prefers-reduced-motion`. Para reestilizar,
+basta ajustar as variáveis — a mudança se propaga por toda a interface.
 
 ## Estrutura do projeto
 

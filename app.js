@@ -85,6 +85,10 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
+  // Ícones Lucide (inline, sem dependência externa)
+  var SVG_EDITAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  var SVG_EXCLUIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+
   // ===================== Comunicação com o servidor =====================
 
   var CHAVE_TOKEN = "controle-aula-eventual:token";
@@ -164,17 +168,92 @@
     alert("Dados enviados para o banco com sucesso.");
   }
 
-  // ===================== Abas =====================
+  // ===================== Navegação (sidebar / abas) =====================
+
+  var TITULOS_ABA = {
+    dashboard: "Dashboard", aulas: "Registrar aula", eventuais: "Eventuais",
+    professores: "Professores", folha: "Folha de controle", relatorio: "Relatórios",
+    usuarios: "Usuários", auditoria: "Auditoria"
+  };
+
+  function irParaAba(nome) {
+    document.querySelectorAll("#barra-abas .aba").forEach(function (aba) {
+      aba.classList.toggle("ativa", aba.dataset.aba === nome);
+    });
+    document.querySelectorAll("main .painel").forEach(function (painel) {
+      painel.hidden = painel.id !== "aba-" + nome;
+    });
+    var trilha = porId("trilha-atual");
+    if (trilha) trilha.textContent = TITULOS_ABA[nome] || "";
+    if (nome === "dashboard") renderizarDashboard();
+    if (nome === "auditoria" && permissoes.verAuditoria) carregarAuditoria().catch(function () {});
+    // fecha o menu lateral no celular
+    porId("app").classList.remove("menu-aberto");
+    window.scrollTo(0, 0);
+  }
 
   porId("barra-abas").addEventListener("click", function (evento) {
     var botao = evento.target.closest("button[data-aba]");
-    if (!botao) return;
-    document.querySelectorAll("#barra-abas .aba").forEach(function (aba) {
-      aba.classList.toggle("ativa", aba === botao);
-    });
-    document.querySelectorAll("main .painel").forEach(function (painel) {
-      painel.hidden = painel.id !== "aba-" + botao.dataset.aba;
-    });
+    if (botao) irParaAba(botao.dataset.aba);
+  });
+
+  // Botões que navegam a partir de outros lugares
+  porId("btn-nova-aula").addEventListener("click", function () { irParaAba("aulas"); });
+  porId("btn-ir-usuarios").addEventListener("click", function () {
+    fecharMenus(); irParaAba("usuarios");
+  });
+
+  // ===================== Menus, sidebar e microinterações =====================
+
+  var app = porId("app");
+
+  porId("btn-menu").addEventListener("click", function () {
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      app.classList.toggle("menu-aberto");
+    } else {
+      app.classList.toggle("recolhido");
+    }
+  });
+  porId("sidebar-overlay").addEventListener("click", function () {
+    app.classList.remove("menu-aberto");
+  });
+
+  function fecharMenus() {
+    porId("menu-usuario").hidden = true;
+    porId("menu-notificacoes").hidden = true;
+  }
+
+  function alternarMenu(id) {
+    var alvo = porId(id);
+    var abrir = alvo.hidden;
+    fecharMenus();
+    alvo.hidden = !abrir;
+  }
+
+  porId("btn-menu-usuario").addEventListener("click", function (e) {
+    e.stopPropagation(); alternarMenu("menu-usuario");
+  });
+  porId("btn-notificacoes").addEventListener("click", function (e) {
+    e.stopPropagation(); alternarMenu("menu-notificacoes");
+  });
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".menu-ancora")) fecharMenus();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { fecharMenus(); porId("modal-senha").hidden = true; }
+  });
+
+  // Mostrar/ocultar senha no login
+  porId("btn-ver-senha").addEventListener("click", function () {
+    var campo = porId("login-senha");
+    campo.type = campo.type === "password" ? "text" : "password";
+  });
+
+  // Modal "esqueci a senha"
+  porId("link-esqueci").addEventListener("click", function () { porId("modal-senha").hidden = false; });
+  porId("btn-fechar-modal-senha").addEventListener("click", function () { porId("modal-senha").hidden = true; });
+  porId("modal-senha").addEventListener("click", function (e) {
+    if (e.target === this) this.hidden = true;
   });
 
   // ===================== Listas fixas (turmas, disciplinas, quantidade) =====================
@@ -352,8 +431,8 @@
   function botoesAcao(id) {
     if (!permissoes.alterarDados) return "<td></td>";
     return "<td>" +
-      '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + id + '">✏️</button>' +
-      '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + id + '">🗑️</button>' +
+      '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + id + '">' + SVG_EDITAR + '</button>' +
+      '<button type="button" class="btn-linha perigo" title="Excluir" data-acao="excluir" data-id="' + id + '">' + SVG_EXCLUIR + '</button>' +
       "</td>";
   }
 
@@ -454,8 +533,8 @@
         "<td>" + escapeHtml(p.disciplina) + "</td>" +
         '<td class="celula-turmas">' + escapeHtml((p.series || []).join(", ")) + "</td>" +
         "<td>" +
-        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + p.id + '">✏️</button>' +
-        '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + p.id + '">🗑️</button>' +
+        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + p.id + '">' + SVG_EDITAR + '</button>' +
+        '<button type="button" class="btn-linha perigo" title="Excluir" data-acao="excluir" data-id="' + p.id + '">' + SVG_EXCLUIR + '</button>' +
         "</td>";
       corpo.appendChild(linha);
     });
@@ -1113,9 +1192,9 @@
         '<td><span class="perfil-etiqueta perfil-' + escapeHtml(u.perfil) + '">' +
           escapeHtml(u.perfil) + "</span></td>" +
         "<td>" +
-        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + u.id + '">✏️</button>' +
+        '<button type="button" class="btn-linha" title="Editar" data-acao="editar" data-id="' + u.id + '">' + SVG_EDITAR + '</button>' +
         (u.id === usuarioAtual.id ? "" :
-          '<button type="button" class="btn-linha" title="Excluir" data-acao="excluir" data-id="' + u.id + '">🗑️</button>') +
+          '<button type="button" class="btn-linha perigo" title="Excluir" data-acao="excluir" data-id="' + u.id + '">' + SVG_EXCLUIR + '</button>') +
         "</td>";
       corpo.appendChild(linha);
     });
@@ -1188,15 +1267,34 @@
     if (!modoSetup) porId("login-usuario").focus();
   }
 
-  function aplicarPermissoes() {
-    porId("usuario-nome").innerHTML = escapeHtml(usuarioAtual.nome) +
-      ' <span class="perfil-etiqueta perfil-' + escapeHtml(usuarioAtual.perfil) +
-      '">' + escapeHtml(usuarioAtual.perfil) + "</span>";
+  function iniciais(nome) {
+    var p = String(nome || "").trim().split(/\s+/);
+    var a = p[0] ? p[0][0] : "";
+    var b = p.length > 1 ? p[p.length - 1][0] : "";
+    return ((a + b) || "?").toUpperCase();
+  }
 
-    // Mostra/esconde as abas conforme a permissão
+  function aplicarPermissoes() {
+    var ini = iniciais(usuarioAtual.nome);
+    porId("usuario-nome").textContent = usuarioAtual.nome;
+    porId("usuario-perfil-topbar").textContent = usuarioAtual.perfil;
+    porId("avatar-topbar").textContent = ini;
+    porId("avatar-sidebar").textContent = ini;
+    porId("sidebar-usuario-nome").textContent = usuarioAtual.nome;
+    porId("sidebar-usuario-perfil").textContent = usuarioAtual.perfil;
+    porId("menu-usuario-nome").textContent = usuarioAtual.nome;
+    porId("menu-usuario-perfil").textContent = usuarioAtual.perfil;
+
+    // Mostra/esconde abas e itens de menu conforme a permissão
     document.querySelectorAll("#barra-abas .aba[data-perm]").forEach(function (aba) {
       aba.hidden = !permissoes[aba.dataset.perm];
     });
+    document.querySelectorAll("#menu-usuario [data-perm]").forEach(function (it) {
+      it.hidden = !permissoes[it.dataset.perm];
+    });
+
+    // Sempre começa pelo Dashboard
+    irParaAba("dashboard");
 
     // AOE não edita/exclui dados: as tabelas escondem os botões (feito na renderização)
     atualizarTudo();
@@ -1248,6 +1346,172 @@
     mostrarLogin(false);
   });
 
+  // ===================== Dashboard =====================
+
+  var PALETA = ["#1e3a8a", "#2563eb", "#0891b2", "#0d9488", "#7c3aed", "#94a3b8"];
+
+  function saudacao() {
+    var h = new Date().getHours();
+    return h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+  }
+
+  function primeiroNome(nome) {
+    return String(nome || "").trim().split(/\s+/)[0] || "";
+  }
+
+  function iconeSvg(d) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + d + "</svg>";
+  }
+
+  function roscaSvg(segmentos, total) {
+    // donut com circunferência 100 (truque do r = 15.915)
+    var off = 25; // começa no topo
+    var circulos = segmentos.map(function (s) {
+      var pct = total ? (s.valor / total) * 100 : 0;
+      var c = '<circle cx="21" cy="21" r="15.915" fill="none" stroke="' + s.cor +
+        '" stroke-width="5" stroke-dasharray="' + pct.toFixed(2) + " " + (100 - pct).toFixed(2) +
+        '" stroke-dashoffset="' + off.toFixed(2) + '"></circle>';
+      off = (off - pct + 100) % 100;
+      return c;
+    }).join("");
+    return '<svg class="rosca-svg" viewBox="0 0 42 42">' +
+      '<circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--surface-2)" stroke-width="5"></circle>' +
+      circulos +
+      '<text class="rosca-centro-num" x="21" y="20.5" text-anchor="middle" dominant-baseline="middle">' + total + "</text>" +
+      '<text class="rosca-centro-tx" x="21" y="26" text-anchor="middle" dominant-baseline="middle">aulas</text>' +
+      "</svg>";
+  }
+
+  function renderizarDashboard() {
+    if (!usuarioAtual) return;
+    var alvo = porId("dashboard");
+    if (!alvo) return;
+
+    var mesAtual = new Date().toISOString().slice(0, 7);
+    var regMes = registros.filter(function (r) { return r.data.slice(0, 7) === mesAtual; });
+    var totalMes = totalAulas(regMes);
+
+    // KPIs
+    var kpis = [
+      { num: regMes.length, label: "Aulas registradas no mês", cap: nomeDoMes(mesAtual), cls: "ki-azul",
+        icone: iconeSvg('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
+      { num: totalMes, label: "Total de aulas ministradas", cap: "Soma do mês", cls: "ki-verde",
+        icone: iconeSvg('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>') },
+      { num: eventuais.length, label: "Eventuais cadastrados", cap: "No sistema", cls: "ki-ambar",
+        icone: iconeSvg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>') },
+      { num: professores.length, label: "Professores cadastrados", cap: "Com aula atribuída", cls: "ki-roxo",
+        icone: iconeSvg('<path d="M22 10 12 5 2 10l10 5z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/>') }
+    ];
+    var htmlKpis = kpis.map(function (k) {
+      return '<div class="kpi"><div class="kpi-icone ' + k.cls + '">' + k.icone + "</div>" +
+        '<div><div class="kpi-num">' + k.num + '</div><div class="kpi-label">' + k.label +
+        '</div><div class="kpi-cap">' + escapeHtml(k.cap) + "</div></div></div>";
+    }).join("");
+
+    // Distribuição por disciplina (mês atual)
+    var porDisc = {};
+    regMes.forEach(function (r) { porDisc[r.disciplina] = (porDisc[r.disciplina] || 0) + (r.qtdAulas || 1); });
+    var lista = Object.keys(porDisc).map(function (d) { return { nome: d, valor: porDisc[d] }; })
+      .sort(function (a, b) { return b.valor - a.valor; });
+    var segmentos = lista.slice(0, 5);
+    if (lista.length > 6) {
+      var resto = lista.slice(5).reduce(function (s, x) { return s + x.valor; }, 0);
+      segmentos.push({ nome: "Outras", valor: resto });
+    } else {
+      segmentos = lista;
+    }
+    segmentos.forEach(function (s, i) { s.cor = PALETA[i % PALETA.length]; });
+
+    var htmlGrafico;
+    if (!segmentos.length) {
+      htmlGrafico = '<p class="vazio">Nenhuma aula registrada em ' + nomeDoMes(mesAtual) + ".</p>";
+    } else {
+      var legenda = segmentos.map(function (s) {
+        var pct = totalMes ? Math.round((s.valor / totalMes) * 100) : 0;
+        return '<div class="rosca-item"><span class="rosca-cor" style="background:' + s.cor + '"></span>' +
+          '<span class="rosca-nome">' + escapeHtml(s.nome) + '</span><span class="rosca-val">' + pct + "%</span></div>";
+      }).join("");
+      htmlGrafico = '<div class="rosca-bloco">' + roscaSvg(segmentos, totalMes) +
+        '<div class="rosca-legenda">' + legenda + "</div></div>";
+    }
+
+    // Aulas recentes
+    var recentes = registros.slice().sort(function (a, b) { return b.data.localeCompare(a.data); }).slice(0, 6);
+    var htmlRecentes;
+    if (!recentes.length) {
+      htmlRecentes = '<p class="vazio">Nenhuma aula registrada ainda.</p>';
+    } else {
+      var linhas = recentes.map(function (r) {
+        return "<tr><td>" + formatarData(r.data) + "</td><td>" + escapeHtml(r.nomeEventual) +
+          "</td><td>" + escapeHtml(r.serie) + "</td><td>" + escapeHtml(r.disciplina) +
+          "</td><td>" + r.qtdAulas + "</td><td>" + escapeHtml(r.nomeProfessor) +
+          '</td><td><span class="status status-ok">Registrada</span></td></tr>';
+      }).join("");
+      htmlRecentes = '<div class="tabela-rolagem"><table><thead><tr>' +
+        "<th>Data</th><th>Eventual</th><th>Turma</th><th>Disciplina</th><th>Aulas</th><th>Prof. substituído</th><th>Status</th>" +
+        "</tr></thead><tbody>" + linhas + "</tbody></table></div>";
+    }
+
+    // Atalhos
+    var atalhos = [
+      { ir: "aulas", t: "Registrar nova aula", s: "Lançar uma aula eventual",
+        i: iconeSvg('<path d="M12 5v14M5 12h14"/>') },
+      { ir: "relatorio", t: "Gerar relatório mensal", s: "Exportar PDF por eventual",
+        i: iconeSvg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>') },
+      { ir: "folha", t: "Folha de controle", s: "Imprimir folha para o eventual",
+        i: iconeSvg('<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/>') }
+    ];
+    var htmlAtalhos = atalhos.map(function (a) {
+      return '<button type="button" class="atalho" data-ir="' + a.ir + '">' +
+        '<span class="atalho-icone">' + a.i + '</span>' +
+        '<span class="atalho-texto">' + a.t + "<small>" + a.s + "</small></span>" +
+        iconeSvg('<path d="m9 18 6-6-6-6"/>') + "</button>";
+    }).join("");
+
+    alvo.innerHTML =
+      '<div class="dash-ola"><h2>' + saudacao() + ", " + escapeHtml(primeiroNome(usuarioAtual.nome)) + "!</h2>" +
+      "<p>Veja o resumo das aulas eventuais deste mês.</p></div>" +
+      '<div class="kpis">' + htmlKpis + "</div>" +
+      '<div class="dash-grid">' +
+        '<section class="cartao"><div class="cabecalho-secao"><h2>Aulas recentes</h2>' +
+          '<button type="button" class="link-ver" data-ir="aulas">Ver todas</button></div>' + htmlRecentes + "</section>" +
+        '<div style="display:flex;flex-direction:column;gap:var(--e5)">' +
+          '<section class="cartao"><h2>Distribuição por disciplina</h2>' + htmlGrafico + "</section>" +
+          '<section class="cartao"><h2>Atalhos</h2><div class="atalhos">' + htmlAtalhos + "</div></section>" +
+        "</div>" +
+      "</div>";
+  }
+
+  porId("dashboard").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-ir]");
+    if (b) irParaAba(b.dataset.ir);
+  });
+
+  function renderizarNotificacoes() {
+    var itens = [];
+    if (!porId("aviso-banco").hidden) {
+      itens.push({ cor: "var(--dang)", t: "Banco de dados não configurado", s: "Configure a variável DATABASE_URL no Railway." });
+    }
+    if (professores.length === 0) {
+      itens.push({ cor: "var(--warn-tx)", t: "Nenhum professor cadastrado", s: "Cadastre professores para lançar aulas." });
+    }
+    if (eventuais.length === 0) {
+      itens.push({ cor: "var(--warn-tx)", t: "Nenhum eventual cadastrado", s: "Cadastre os professores eventuais." });
+    }
+    var mesAtual = new Date().toISOString().slice(0, 7);
+    var n = registros.filter(function (r) { return r.data.slice(0, 7) === mesAtual; }).length;
+    itens.push({ cor: "var(--primary-700)", t: n + " aula(s) registrada(s) no mês", s: nomeDoMes(mesAtual) });
+
+    var temAlerta = itens.some(function (i) { return i.cor !== "var(--primary-700)"; });
+    porId("badge-notificacoes").hidden = !temAlerta;
+
+    porId("lista-notificacoes").innerHTML = itens.map(function (i) {
+      return '<div class="notif-item"><span class="notif-ponto" style="background:' + i.cor + '"></span>' +
+        "<div>" + escapeHtml(i.t) + "<small>" + escapeHtml(i.s) + "</small></div></div>";
+    }).join("");
+  }
+
   // ===================== Inicialização =====================
 
   function atualizarTudo() {
@@ -1258,6 +1522,8 @@
     atualizarSelectProfessores();
     atualizarFiltroEventuais();
     atualizarPrevia();
+    renderizarDashboard();
+    renderizarNotificacoes();
   }
 
   async function entrarNoSistema() {
