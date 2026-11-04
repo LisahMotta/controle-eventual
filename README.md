@@ -18,15 +18,19 @@ Abas do app (visíveis conforme o perfil):
 - **Registrar aula** — tudo escolhido em listas: o professor eventual (do cadastro), a turma
   (agrupada por período: manhã, tarde e noite), a disciplina, a quantidade de aulas (1 a 10)
   e o professor substituído (filtrado pela disciplina). Os CPFs são preenchidos automaticamente.
-- **Eventuais** — cadastro dos professores eventuais (nome e CPF).
-- **Professores** — cadastro dos professores com aula atribuída: nome, CPF, disciplina e turmas.
+  Há também a opção **Aula livre (código 99)** no lugar do professor substituído — para aulas sem
+  titular, em que vale a disciplina.
+- **Eventuais** — cadastro dos professores eventuais (nome, CPF e **escola sede**).
+- **Professores** — cadastro dos professores com aula atribuída: nome, CPF, **R.G.**, disciplina e turmas.
 - **Folha de controle** — gera uma folha em PDF (1 a 31) para o eventual anotar as aulas à mão,
   inclusive uma **folha em branco** para o eventual de emergência ainda não cadastrado.
 - **Relatório** — relatório mensal por eventual, com prévia na tela e PDF.
 - **Boletim (B.O.)** — gera o Boletim de Ocorrências em PDF (no formato oficial da SEDUC-SP) para
-  pagamento: escolhe-se o eventual e o mês, e a grade dia a dia (1 a 31) é preenchida na coluna
-  **Substituições** com as aulas lançadas, com o total do mês e campos de assinatura. Os dados da
-  escola (estabelecimento, U.A., CIE, telefone) ficam salvos no navegador.
+  pagamento: escolhe-se o eventual e o mês, e a grade dia a dia é preenchida com o **professor
+  substituído** e o **R.G.** dele (do cadastro), a **disciplina** e a quantidade (coluna
+  Substituições), com o total do mês e campos de assinatura. A **escola sede** do eventual entra no
+  cabeçalho; a aula livre (99) aparece com a disciplina no lugar do titular. Os dados da escola
+  (estabelecimento, U.A., CIE, telefone) ficam salvos no navegador.
 - **Usuários** (GOE/Secretário) — cadastro e edição de usuários e perfis.
 - **Auditoria** (GOE) — log de quem acessou o sistema e das alterações feitas.
 

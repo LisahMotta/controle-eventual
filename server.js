@@ -85,7 +85,8 @@ function validarRegistro(r) {
     disciplina: texto(r.disciplina, 80),
     qtdAulas: Math.min(10, Math.max(1, parseInt(r.qtdAulas, 10) || 1)),
     nomeProfessor: texto(r.nomeProfessor),
-    cpfProfessor: texto(r.cpfProfessor, 20)
+    cpfProfessor: texto(r.cpfProfessor, 20),
+    rgProfessor: texto(r.rgProfessor, 20)
   };
   if (!registro.nomeEventual || !registro.cpfEventual ||
       !/^\d{4}-\d{2}-\d{2}$/.test(registro.data)) return null;
@@ -97,7 +98,8 @@ function validarEventual(e) {
   const eventual = {
     id: texto(e.id) || novoId(),
     nome: texto(e.nome),
-    cpf: texto(e.cpf, 20)
+    cpf: texto(e.cpf, 20),
+    escolaSede: texto(e.escolaSede, 120)
   };
   if (!eventual.nome || !eventual.cpf) return null;
   return eventual;
@@ -112,6 +114,7 @@ function validarProfessor(p) {
     id: texto(p.id) || novoId(),
     nome: texto(p.nome),
     cpf: texto(p.cpf, 20),
+    rg: texto(p.rg, 20),
     disciplina: texto(p.disciplina, 80),
     series: series
   };

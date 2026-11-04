@@ -399,7 +399,8 @@
     var eventual = {
       id: idEventualEmEdicao || novoId(),
       nome: porId("nome-eventual-cad").value.trim(),
-      cpf: formatarCpf(campoCpfEventualCad.value)
+      cpf: formatarCpf(campoCpfEventualCad.value),
+      escolaSede: porId("escola-sede-cad").value.trim()
     };
 
     var botao = porId("btn-salvar-eventual");
@@ -444,6 +445,7 @@
       linha.innerHTML =
         "<td>" + escapeHtml(e.nome) + "</td>" +
         "<td>" + escapeHtml(e.cpf) + "</td>" +
+        "<td>" + escapeHtml(e.escolaSede || "") + "</td>" +
         botoesAcao(e.id);
       corpo.appendChild(linha);
     });
@@ -460,6 +462,7 @@
       idEventualEmEdicao = eventual.id;
       porId("nome-eventual-cad").value = eventual.nome;
       campoCpfEventualCad.value = eventual.cpf;
+      porId("escola-sede-cad").value = eventual.escolaSede || "";
       porId("btn-salvar-eventual").textContent = "Atualizar eventual";
       porId("btn-cancelar-eventual").hidden = false;
       porId("nome-eventual-cad").focus();
@@ -491,6 +494,7 @@
       id: idProfessorEmEdicao || novoId(),
       nome: porId("nome-professor-cad").value.trim(),
       cpf: formatarCpf(campoCpfProfessorCad.value),
+      rg: porId("rg-professor-cad").value.trim(),
       disciplina: porId("disciplina-professor-cad").value,
       series: turmasSelecionadas()
     };
@@ -530,6 +534,7 @@
       linha.innerHTML =
         "<td>" + escapeHtml(p.nome) + "</td>" +
         "<td>" + escapeHtml(p.cpf) + "</td>" +
+        "<td>" + escapeHtml(p.rg || "") + "</td>" +
         "<td>" + escapeHtml(p.disciplina) + "</td>" +
         '<td class="celula-turmas">' + escapeHtml((p.series || []).join(", ")) + "</td>" +
         "<td>" +
@@ -551,6 +556,7 @@
       idProfessorEmEdicao = professor.id;
       porId("nome-professor-cad").value = professor.nome;
       campoCpfProfessorCad.value = professor.cpf;
+      porId("rg-professor-cad").value = professor.rg || "";
       porId("disciplina-professor-cad").value = professor.disciplina;
       marcarTurmas(professor.series);
       porId("btn-salvar-professor").textContent = "Atualizar professor";
@@ -630,13 +636,18 @@
     }
 
     select.innerHTML = '<option value="">— Selecione o professor —</option>';
+    var opLivre = document.createElement("option");
+    opLivre.value = "__livre__";
+    opLivre.textContent = "Aula livre (código 99)";
+    select.appendChild(opLivre);
     lista.forEach(function (p) {
       var opcao = document.createElement("option");
       opcao.value = p.id;
       opcao.textContent = p.nome + " — " + p.disciplina;
       select.appendChild(opcao);
     });
-    if (valorAtual && lista.some(function (p) { return p.id === valorAtual; })) {
+    if (valorAtual === "__livre__" ||
+        (valorAtual && lista.some(function (p) { return p.id === valorAtual; }))) {
       select.value = valorAtual;
     }
 
@@ -662,7 +673,15 @@
     porId("cpf-eventual-exibicao").value = eventual ? eventual.cpf : "";
   }
 
+  function aulaLivreSelecionada() {
+    return porId("sel-professor").value === "__livre__";
+  }
+
   function atualizarCpfProfessor() {
+    if (aulaLivreSelecionada()) {
+      porId("cpf-professor-exibicao").value = "— Aula livre (99) —";
+      return;
+    }
     var professor = professorSelecionado();
     porId("cpf-professor-exibicao").value = professor ? professor.cpf : "";
   }
@@ -698,13 +717,18 @@
     evento.preventDefault();
 
     var eventual = eventualSelecionado();
+    var aulaLivre = aulaLivreSelecionada();
     var professor = professorSelecionado();
     if (!eventual) {
       alert("Selecione o professor eventual. Se a lista estiver vazia, cadastre na aba Eventuais.");
       return;
     }
-    if (!professor) {
-      alert("Selecione o professor substituído. Se a lista estiver vazia, cadastre na aba Professores.");
+    if (!aulaLivre && !professor) {
+      alert("Selecione o professor substituído, ou escolha \"Aula livre (código 99)\".");
+      return;
+    }
+    if (aulaLivre && !porId("disciplina").value) {
+      alert("Na aula livre (99), informe a disciplina.");
       return;
     }
 
@@ -716,8 +740,9 @@
       serie: porId("serie").value,
       disciplina: porId("disciplina").value,
       qtdAulas: parseInt(porId("qtd-aulas").value, 10) || 1,
-      nomeProfessor: professor.nome,
-      cpfProfessor: professor.cpf
+      nomeProfessor: aulaLivre ? "Aula livre (99)" : professor.nome,
+      cpfProfessor: aulaLivre ? "" : professor.cpf,
+      rgProfessor: aulaLivre ? "" : (professor.rg || "")
     };
 
     var botao = porId("btn-salvar");
@@ -758,7 +783,9 @@
     idEmEdicao = registro.id;
 
     var eventual = eventuais.find(function (e) { return e.cpf === registro.cpfEventual; });
-    var professor = professores.find(function (p) { return p.cpf === registro.cpfProfessor; });
+    var ehAulaLivre = !registro.cpfProfessor || registro.nomeProfessor === "Aula livre (99)";
+    var professor = ehAulaLivre ? null :
+      professores.find(function (p) { return p.cpf === registro.cpfProfessor; });
 
     if (eventual) {
       porId("sel-eventual").value = eventual.id;
@@ -771,13 +798,16 @@
     }
     atualizarCpfEventual();
 
-    if (professor) {
+    if (ehAulaLivre) {
+      porId("sel-professor").value = "__livre__";
+    } else if (professor) {
       porId("sel-professor").value = professor.id;
     } else {
       var idTempProf = "antigo:" + registro.cpfProfessor;
       professores.push({
         id: idTempProf, nome: registro.nomeProfessor,
-        cpf: registro.cpfProfessor, disciplina: registro.disciplina, series: []
+        cpf: registro.cpfProfessor, rg: registro.rgProfessor || "",
+        disciplina: registro.disciplina, series: []
       });
       atualizarSelectProfessores();
       porId("sel-professor").value = idTempProf;
@@ -1140,33 +1170,48 @@
     };
     try { localStorage.setItem(CHAVE_BO, JSON.stringify(cfg)); } catch (e) {}
 
-    var rg = porId("bo-rg").value.trim() || "____________________";
     var sitcat = porId("bo-sitcat").value.trim() || "EVENTUAL";
+    var escolaSede = emBranco ? "______________________________"
+      : (eventual.escolaSede || "____________________");
     var ano = parseInt(mes.slice(0, 4), 10);
     var mesNum = parseInt(mes.slice(5, 7), 10);
     var nDias = diasNoMes(mes);
 
-    // grade dia a dia: coluna Substituições = aulas do eventual no dia
+    function distintos(lista) {
+      var vistos = {}, out = [];
+      lista.forEach(function (v) {
+        v = (v || "").trim();
+        if (v && !vistos[v]) { vistos[v] = 1; out.push(v); }
+      });
+      return out.join("; ");
+    }
+
+    // grade dia a dia: cada dia mostra o(s) titular(es) substituído(s),
+    // o R.G. deles e a disciplina; a coluna Subst. traz a quantidade
     var linhas = [];
     var totalMes = 0;
     for (var dia = 1; dia <= nDias; dia++) {
       var dataIso = mes + "-" + (dia < 10 ? "0" : "") + dia;
       var sem = DIAS_SEMANA[new Date(ano, mesNum - 1, dia).getDay()];
-      var qtd = emBranco ? 0 : registros
-        .filter(function (r) { return r.cpfEventual === eventual.cpf && r.data === dataIso; })
-        .reduce(function (s, r) { return s + (r.qtdAulas || 1); }, 0);
+      var doDia = emBranco ? [] : registros.filter(function (r) {
+        return r.cpfEventual === eventual.cpf && r.data === dataIso;
+      });
+      var qtd = doDia.reduce(function (s, r) { return s + (r.qtdAulas || 1); }, 0);
       totalMes += qtd;
+      var prof = distintos(doDia.map(function (r) { return r.nomeProfessor; }));
+      var rgs = distintos(doDia.map(function (r) { return r.rgProfessor; }));
+      var discs = distintos(doDia.map(function (r) { return r.disciplina; }));
       var marca = qtd > 0 ? String(qtd) : "";
-      linhas.push([String(dia), sem, "", marca, "", marca, "", ""]);
+      linhas.push([String(dia), sem, prof, rgs, discs, marca, marca]);
     }
 
     var periodo = "01/" + (mesNum < 10 ? "0" : "") + mesNum + "/" + ano +
       " a " + nDias + "/" + (mesNum < 10 ? "0" : "") + mesNum + "/" + ano;
 
     var infos = [
-      ["Professor(a)", eventual.nome],
-      ["R.G.  /  Sit.-Cat.", rg + "    /    " + sitcat],
-      ["Cód. U.A.  /  CIE  /  Tel.", cfg.ua + "    ·    CIE " + cfg.cie + "    ·    Tel. " + cfg.tel],
+      ["Professor(a) eventual", eventual.nome],
+      ["Escola sede", escolaSede],
+      ["Sit. / Cat.", sitcat],
       ["Período de apuração", periodo]
     ];
     if (!emBranco && eventual.cpf) {
@@ -1175,17 +1220,17 @@
 
     var blob = gerarRelatorioPdf({
       titulo: "Boletim de Ocorrências — B.O.",
-      subtitulo: cfg.estabelecimento + (cfg.regiao ? "   —   " + cfg.regiao : ""),
+      subtitulo: cfg.estabelecimento + (cfg.regiao ? "   —   " + cfg.regiao : "") +
+        "     ·     U.A. " + cfg.ua + "  ·  CIE " + cfg.cie + "  ·  Tel. " + cfg.tel,
       infos: infos,
       colunas: [
-        { titulo: "Dia", largura: 30 },
-        { titulo: "Sem.", largura: 34 },
-        { titulo: "Funções Remun.", largura: 78 },
-        { titulo: "Substituições", largura: 80 },
-        { titulo: "Recup./Repos.", largura: 70 },
-        { titulo: "Total Geral", largura: 62 },
-        { titulo: "Horas-Aula", largura: 70 },
-        { titulo: "Natureza", largura: 91 }
+        { titulo: "Dia", largura: 26 },
+        { titulo: "Sem.", largura: 30 },
+        { titulo: "Prof. substituído", largura: 140 },
+        { titulo: "R.G.", largura: 80 },
+        { titulo: "Disciplina", largura: 112 },
+        { titulo: "Subst.", largura: 45 },
+        { titulo: "Total Geral", largura: 82 }
       ],
       linhas: linhas,
       alturaLinha: 15,
@@ -1198,7 +1243,7 @@
 
     var baseNome = emBranco ? "em-branco" :
       eventual.nome.toLowerCase().normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);

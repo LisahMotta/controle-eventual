@@ -29,7 +29,8 @@ const COLECOES = {
       ["disciplina", "disciplina"],
       ["qtd_aulas", "qtdAulas"],
       ["nome_professor", "nomeProfessor"],
-      ["cpf_professor", "cpfProfessor"]
+      ["cpf_professor", "cpfProfessor"],
+      ["rg_professor", "rgProfessor"]
     ],
     criacao: `CREATE TABLE IF NOT EXISTS registros (
       id TEXT PRIMARY KEY,
@@ -40,7 +41,8 @@ const COLECOES = {
       disciplina TEXT NOT NULL,
       qtd_aulas INTEGER NOT NULL DEFAULT 1,
       nome_professor TEXT NOT NULL,
-      cpf_professor TEXT NOT NULL
+      cpf_professor TEXT NOT NULL,
+      rg_professor TEXT NOT NULL DEFAULT ''
     )`,
     ordem: "data"
   },
@@ -49,12 +51,14 @@ const COLECOES = {
     campos: [
       ["id", "id"],
       ["nome", "nome"],
-      ["cpf", "cpf"]
+      ["cpf", "cpf"],
+      ["escola_sede", "escolaSede"]
     ],
     criacao: `CREATE TABLE IF NOT EXISTS eventuais (
       id TEXT PRIMARY KEY,
       nome TEXT NOT NULL,
-      cpf TEXT NOT NULL
+      cpf TEXT NOT NULL,
+      escola_sede TEXT NOT NULL DEFAULT ''
     )`,
     ordem: "nome"
   },
@@ -64,6 +68,7 @@ const COLECOES = {
       ["id", "id"],
       ["nome", "nome"],
       ["cpf", "cpf"],
+      ["rg", "rg"],
       ["disciplina", "disciplina"],
       ["series", "series"] // lista de turmas, gravada como JSON
     ],
@@ -71,6 +76,7 @@ const COLECOES = {
       id TEXT PRIMARY KEY,
       nome TEXT NOT NULL,
       cpf TEXT NOT NULL,
+      rg TEXT NOT NULL DEFAULT '',
       disciplina TEXT NOT NULL,
       series TEXT NOT NULL DEFAULT '[]'
     )`,
@@ -148,6 +154,10 @@ function criarArmazenamentoPostgres() {
     for (const nome of Object.keys(COLECOES)) {
       await pool.query(COLECOES[nome].criacao);
     }
+    // Migrações para bancos criados antes destas colunas existirem
+    await pool.query("ALTER TABLE professores ADD COLUMN IF NOT EXISTS rg TEXT NOT NULL DEFAULT ''");
+    await pool.query("ALTER TABLE eventuais ADD COLUMN IF NOT EXISTS escola_sede TEXT NOT NULL DEFAULT ''");
+    await pool.query("ALTER TABLE registros ADD COLUMN IF NOT EXISTS rg_professor TEXT NOT NULL DEFAULT ''");
   })();
 
   function paraApp(nome, linha) {
