@@ -1,0 +1,16 @@
+{
+  "name": "controle-aula-eventual",
+  "version": "1.0.0",
+  "description": "Controle de aulas ministradas por professores eventuais, com relatório mensal em PDF",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^8.22.0"
+  }
+}
