@@ -37,11 +37,27 @@
     "Sociologia", "Filosofia"];
 
   // Código oficial de cada disciplina (usado no B.O. para aula livre).
-  // Preencher com os códigos da aba de disciplinas da escola. Enquanto
-  // uma disciplina não tiver código aqui, o B.O. mostra o nome dela.
+  // Enquanto uma disciplina não tiver código aqui, o B.O. mostra o nome.
   var DISCIPLINA_CODIGO = {
-    // "Português": "1101",
-    // "Matemática": "1201",
+    "Classe": "1.000",            // CLASSE CICLO I
+    "Português": "1.111",         // Port. E.M. regular
+    "Inglês": "1.400",            // ING
+    "Arte": "1.813",              // ARTES
+    "Educação Física": "1.900",   // ED. FÍS
+    "História": "2.200",          // HIST
+    "Geografia": "2.100",         // GEO
+    "Ciências": "2.500",          // CIÊ
+    "Matemática": "2.700",        // MAT
+    "Biologia": "2.400",          // BIO
+    "Química": "2.800",           // QUÍ
+    "Física": "2.600",            // FÍSICA
+    "Sociologia": "2.300",        // SOCI
+    "Filosofia": "3.100",         // FILO
+    "Redação e Leitura": "1.120", // PROD. TEX (a confirmar)
+    "Orientação de Estudos – Língua Portuguesa": "6.405", // REC. PORT. (a confirmar)
+    "Orientação de Estudos – Matemática": "6.405"         // REC. MAT. (a confirmar)
+    // A confirmar (sem código claro na tabela): "Projeto de Vida",
+    // "Tecnologia", "Educação Financeira" — mostram o nome até você definir.
   };
 
   function codigoDisciplina(nome) {
