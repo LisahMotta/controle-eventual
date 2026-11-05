@@ -53,11 +53,11 @@
     "Física": "2.600",            // FÍSICA
     "Sociologia": "2.300",        // SOCI
     "Filosofia": "3.100",         // FILO
-    "Redação e Leitura": "1.120", // PROD. TEX (a confirmar)
-    "Orientação de Estudos – Língua Portuguesa": "6.405", // REC. PORT. (a confirmar)
-    "Orientação de Estudos – Matemática": "6.405"         // REC. MAT. (a confirmar)
-    // A confirmar (sem código claro na tabela): "Projeto de Vida",
-    // "Tecnologia", "Educação Financeira" — mostram o nome até você definir.
+    "Redação e Leitura": "1.120", // PROD. TEX
+    "Orientação de Estudos – Língua Portuguesa": "6.405", // REC. PORT.
+    "Orientação de Estudos – Matemática": "6.405"         // REC. MAT.
+    // Sem código na tabela da escola: "Projeto de Vida", "Tecnologia",
+    // "Educação Financeira" — mostram o nome da disciplina no B.O.
   };
 
   function codigoDisciplina(nome) {
